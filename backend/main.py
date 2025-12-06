@@ -75,13 +75,16 @@ async def ws_video_stream(websocket: WebSocket) -> None:
     try:
         while True:
             frame = camera.get_frame()
+            frame_b64 = camera.get_frame_base64(frame)
+
             detections = detection.detect_persons(frame) if frame is not None else []
             tracked = tracking.update_tracks(detections)
             metrics = decision.calculate_required_time(tracked)
+            traffic.synchronize_lights(metrics.get("extension_time", 0.0))
 
             await websocket.send_json(
                 {
-                    "frame": None,  # TODO: encode frame to base64 when available
+                    "frame": frame_b64,
                     "detections": detections,
                     "tracking": tracked,
                     "metrics": metrics,

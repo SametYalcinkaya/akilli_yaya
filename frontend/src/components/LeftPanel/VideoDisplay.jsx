@@ -1,9 +1,18 @@
-export function VideoDisplay({ detections = [], status }) {
+export function VideoDisplay({ detections = [], status, frame }) {
     return (
         <div className="relative h-[360px] w-full overflow-hidden rounded-xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800">
-            <div className="absolute inset-0 flex items-center justify-center text-slate-500">
-                Canlı akış henüz bağlı değil
-            </div>
+            {frame ? (
+                <img
+                    src={`data:image/jpeg;base64,${frame}`}
+                    alt="Akış"
+                    className="h-full w-full object-cover opacity-90"
+                />
+            ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-slate-500">
+                    Canlı akış henüz bağlı değil
+                </div>
+            )}
+
             {detections.map((det, idx) => (
                 <div
                     key={`${det.track_id || det.id || idx}`}
@@ -16,7 +25,8 @@ export function VideoDisplay({ detections = [], status }) {
                     {det.category || "adult"} · {(det.score || 0).toFixed(2)}
                 </div>
             ))}
-            <div className="absolute left-4 top-4 text-xs uppercase tracking-widest text-slate-400">
+
+            <div className="absolute left-4 top-4 text-xs uppercase tracking-widest text-slate-200 drop-shadow">
                 Video Feed · {status}
             </div>
         </div>

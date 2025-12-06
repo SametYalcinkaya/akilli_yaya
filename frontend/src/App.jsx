@@ -40,6 +40,7 @@ export default function App() {
                     <VideoDisplay
                         detections={videoSocket.data?.detections || []}
                         status={videoSocket.status}
+                        frame={videoSocket.data?.frame}
                     />
                     <MetricsCards metrics={metrics} />
                     <ControlPanel />

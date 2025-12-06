@@ -32,10 +32,10 @@ class TrackingSystem:
     def calculate_position(self, bbox: Optional[List[int]]) -> float:
         if not bbox:
             return 0.0
-        # Placeholder: map y-position to completion percentage.
+        # Placeholder: map y-position to completion percentage (assume 360px tall frame).
         _, y1, _, y2 = bbox
         center_y = (y1 + y2) / 2
-        return max(0.0, min(1.0, center_y / 720))
+        return max(0.0, min(1.0, center_y / 360))
 
     def estimate_speed(self, track_id: int, position_percent: float) -> float:
         history = self.track_history.get(track_id, [])
