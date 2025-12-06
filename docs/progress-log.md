@@ -2,8 +2,12 @@
 
 Her adımı tarih/saat ile not edin. Yeni kayıtları bu dosyanın en üstüne ekleyin (ters kronolojik).
 
+## 2025-12-06 (Later PM)
+- YOLO entegrasyonu: `DetectionEngine` lazy-load yapıyor; `backend/models/yolov8n.pt` varsa gerçek person tespiti, yoksa stub’a düşüyor.
+- Model indirme yardımcısı: `backend/download_model.py` eklendi; `yolov8n.pt` dosyasını `backend/models/` altına indirir.
+
 ## 2025-12-06 (PM)
-- Demo akış iyileştirmesi: `CameraHandler` artık Pillow ile stub kare üretip base64 olarak gönderiyor.
+- Demo akış iyileştirmesi: `CameraHandler` stub kare üretip base64 olarak gönderiyor.
 - `DetectionEngine` demo amaçlı hareketli bbox ve kategori fazı ekledi; `TrackingSystem` 360px yüksekliğe göre konum hesaplıyor.
 - `main.py` WebSocket çıktısına base64 frame, senkronize ışık güncellemesi ve metrikler eklendi.
 - Frontend `VideoDisplay` base64 frame render ediyor; `App.jsx` frame prop’u geçiyor.

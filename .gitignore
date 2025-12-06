@@ -1,0 +1,17 @@
+__pycache__/
+.venv/
+env/
+.DS_Store
+*.pyc
+*.pyo
+
+# Model weights
+backend/models/
+*.pt
+
+# Node
+node_modules/
+dist/
+
+# VSCode
+.vscode/
