@@ -1,8 +1,11 @@
 import asyncio
+import os
+import shutil
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from camera_handler import CameraHandler
@@ -19,6 +22,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Video upload klasörü
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 class CalibratePayload(BaseModel):
@@ -53,6 +60,27 @@ async def calibrate(payload: CalibratePayload) -> Dict[str, str]:
 async def start() -> Dict[str, str]:
     camera.start()
     return {"status": "started"}
+
+
+@app.post("/api/start-camera")
+async def start_camera(device_id: int = 0) -> Dict[str, str]:
+    """Webcam'i başlat"""
+    camera.video_path = None  # Video modunu kapat
+    camera.start(device_id)
+    return {"status": "camera started", "device_id": device_id}
+
+
+@app.post("/api/upload-video")
+async def upload_video(file: UploadFile = File(...)) -> Dict[str, str]:
+    """Video dosyası yükle ve oynat"""
+    # Dosyayı kaydet
+    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Videoyu başlat
+    camera.load_video(file_path)
+    return {"status": "video uploaded and started", "path": file_path, "filename": file.filename}
 
 
 @app.post("/api/start-video")
