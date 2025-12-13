@@ -1,9 +1,22 @@
+# Akıllı Yaya Güvenliği Sistemi - Gereksinimler
+
+# Web Framework
 fastapi>=0.110.0
 uvicorn[standard]>=0.24.0
 pydantic>=2.5.2
+python-multipart>=0.0.6
+
+# Computer Vision & AI
 opencv-python>=4.8.1.78
 ultralytics>=8.2.0
 numpy>=1.26.2
 Pillow>=10.1.0
-python-multipart>=0.0.6
-# SUMO integration uses local SUMO installation with TraCI (not installed via pip).
+
+# Tracking & Optimization
+scipy>=1.11.0
+filterpy>=1.4.5
+
+# Video Streaming
+av>=11.0.0
+
+# Optional: SUMO integration (uses local SUMO installation with TraCI)

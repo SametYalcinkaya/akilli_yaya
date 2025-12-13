@@ -8,8 +8,22 @@ import numpy as np
 from ultralytics import YOLO
 
 
+BEST_MODEL_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "runs",
+        "detect",
+        "akilli_yaya_mvp",
+        "weights",
+        "best.pt",
+    )
+)
+
+
 class DetectionEngine:
     def __init__(self, model_path: Optional[str] = None) -> None:
+        # Öncelik: parametre > dokümandaki best.pt > backend/models/mvp_best.pt > backend/models/yolov8n.pt
         self.model_path = model_path
         self.last_detections: List[dict] = []
         self._tick = 0
@@ -18,11 +32,23 @@ class DetectionEngine:
     def _ensure_model(self) -> bool:
         if self._model:
             return True
-        model_path = self.model_path or os.path.join(os.path.dirname(__file__), "models", "mvp_best.pt")
-        if not os.path.exists(model_path):
-            # Fallback to base model
-            model_path = os.path.join(os.path.dirname(__file__), "models", "yolov8n.pt")
-        if not os.path.exists(model_path):
+
+        candidates = []
+        if self.model_path:
+            candidates.append(self.model_path)
+        # Dokümandaki eğitim çıktısı (best.pt) öncelikli
+        candidates.append(BEST_MODEL_PATH)
+        # Backend modelleri
+        candidates.append(os.path.join(os.path.dirname(__file__), "models", "mvp_best.pt"))
+        candidates.append(os.path.join(os.path.dirname(__file__), "models", "yolov8n.pt"))
+
+        model_path: Optional[str] = None
+        for path in candidates:
+            if path and os.path.exists(path):
+                model_path = path
+                break
+
+        if not model_path:
             return False
         try:
             self._model = YOLO(model_path)
