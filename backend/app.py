@@ -11,7 +11,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -179,6 +179,36 @@ async def add_video_file(file_path: str, name: str = "Video") -> Dict[str, Any]:
         raise HTTPException(404, "Dosya bulunamadı")
     source = stream_handler.add_video_file(file_path, name)
     return {"status": "ok", "source_id": f"video_{hash(file_path) % 10000}"}
+
+
+@app.post("/api/upload-video", tags=["Stream"])
+async def upload_video(file: UploadFile = File(...)) -> Dict[str, Any]:
+    """Video dosyası yükle ve kaynak olarak ekle."""
+    # uploads klasörünü oluştur
+    upload_dir = os.path.join(os.path.dirname(__file__), "uploads")
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Dosyayı kaydet
+    file_path = os.path.join(upload_dir, file.filename)
+    with open(file_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+    
+    # Stream olarak ekle
+    source_id = f"video_{int(time.time())}"
+    source = stream_handler.add_source(
+        source_id=source_id,
+        name=file.filename,
+        url=file_path,
+        source_type="video"
+    )
+    
+    return {
+        "status": "ok",
+        "source_id": source_id,
+        "name": file.filename,
+        "file_path": file_path
+    }
 
 
 @app.post("/api/stream/start/{source_id}", tags=["Stream"])

@@ -3,7 +3,7 @@ import { Camera, Upload, StopCircle, RotateCcw, Activity } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_BACKEND_API || "http://localhost:8001";
 
-export function ControlPanel() {
+export function ControlPanel({ onVideoUploaded }) {
     const fileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
     const [status, setStatus] = useState("");
@@ -12,8 +12,15 @@ export function ControlPanel() {
     const startCamera = async () => {
         try {
             setStatus("Kamera başlatılıyor...");
-            const res = await fetch(`${API_BASE}/api/start-camera`, { method: "POST" });
+            const res = await fetch(`${API_BASE}/api/stream/add-webcam?device_id=0&name=Webcam`, { method: "POST" });
             const data = await res.json();
+            
+            // Stream'i başlat
+            if (data.source_id) {
+                await fetch(`${API_BASE}/api/stream/start/${data.source_id}`, { method: "POST" });
+                if (onVideoUploaded) onVideoUploaded(data);
+            }
+            
             setStatus("✅ Kamera aktif");
             console.log("Camera started:", data);
         } catch (error) {
@@ -39,6 +46,13 @@ export function ControlPanel() {
                 body: formData,
             });
             const data = await res.json();
+            
+            // Stream'i başlat
+            if (data.source_id) {
+                await fetch(`${API_BASE}/api/stream/start/${data.source_id}`, { method: "POST" });
+                if (onVideoUploaded) onVideoUploaded(data);
+            }
+            
             setStatus(`✅ Video oynatılıyor: ${file.name}`);
             console.log("Video uploaded:", data);
         } catch (error) {
@@ -53,7 +67,7 @@ export function ControlPanel() {
     // Durdur
     const stopStream = async () => {
         try {
-            await fetch(`${API_BASE}/api/stop`, { method: "POST" });
+            await fetch(`${API_BASE}/api/stream/stop-all`, { method: "POST" });
             setStatus("⏹️ Durduruldu");
         } catch (error) {
             console.error("Stop failed:", error);

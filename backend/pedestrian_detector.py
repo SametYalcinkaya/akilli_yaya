@@ -59,13 +59,14 @@ class PedestrianDetector:
         }
     }
     
-    # Model arama yolları
+    # Model arama yolları (öncelik sırasına göre)
     MODEL_SEARCH_PATHS = [
-        # Eğitilmiş modeller (öncelikli)
-        "runs/detect/akilli_yaya_mvp/weights/best.pt",
+        # Ana eğitilmiş 4 sınıflı model (child, elderly, disabled, adult)
         "runs/train/ai2_balanced_v1/weights/best.pt",
+        # Alternatif eğitilmiş modeller
         "runs/train/ai2_ai2balanced_v1/weights/best.pt",
         "runs/train/ai2_ai2balanced_v1_small/weights/best.pt",
+        "runs/detect/akilli_yaya_mvp/weights/best.pt",
         # Backend modelleri
         "backend/models/mvp_best.pt",
         "backend/models/yolov8n.pt",

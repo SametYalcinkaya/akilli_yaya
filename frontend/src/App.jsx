@@ -16,8 +16,10 @@ const CATEGORIES = {
     disabled: { name: "Engelli", emoji: "♿", color: "#f59e0b", bgColor: "bg-amber-500" },
 };
 
-const WS_URL = "ws://localhost:8001/ws/video-stream";
-const API_URL = "http://localhost:8001/api";
+// Backend bağlantı ayarları - app.py 8001 portunda çalışır
+const BACKEND_HOST = import.meta.env.VITE_BACKEND_HOST || "localhost:8001";
+const WS_URL = `ws://${BACKEND_HOST}/ws/video-stream`;
+const API_URL = `http://${BACKEND_HOST}/api`;
 
 export default function App() {
     // State
@@ -30,8 +32,9 @@ export default function App() {
     const [metrics, setMetrics] = useState(null);
     const [selectedPedestrianId, setSelectedPedestrianId] = useState(null);
     const [streamUrl, setStreamUrl] = useState("");
-    const [selectedKavsak, setSelectedKavsak] = useState("");
-    const [iframeUrl, setIframeUrl] = useState(""); // iframe için URL
+    const [selectedKavsak, setSelectedKavsak] = useState("1"); // Varsayılan: Polis Okulu Kavşağı
+    const [iframeUrl, setIframeUrl] = useState(""); // Boş başla - HLS stream kullanacağız
+    const [analysisActive, setAnalysisActive] = useState(false); // Analiz durumu
 
     // Refs
     const wsRef = useRef(null);
@@ -122,21 +125,94 @@ export default function App() {
         }
     };
 
-    // Kavşak seçildiğinde - basit iframe yöntemi
+    // Kavşak seçildiğinde - sadece seçimi kaydet
     const handleKavsakChange = (e) => {
         const kavsakId = e.target.value;
         setSelectedKavsak(kavsakId);
+    };
 
-        if (!kavsakId) {
-            setIframeUrl("");
+    // HLS Stream ile Yaya Analizi Başlat
+    const startAnalysis = async () => {
+        const kavsak = BURSA_KAVSAK_KAMERALARI.find(k => k.id === Number(selectedKavsak));
+        if (!kavsak) {
+            alert("Lütfen önce bir kavşak seçin!");
             return;
         }
 
-        const kavsak = BURSA_KAVSAK_KAMERALARI.find(k => k.id === Number(kavsakId));
-        if (kavsak) {
-            // Direkt iframe URL'si olarak ayarla
-            setIframeUrl(kavsak.url);
-            console.log("Kavşak seçildi:", kavsak.name, kavsak.url);
+        setAnalysisActive(true);
+        setIframeUrl(""); // iframe'i kapat
+
+        try {
+            // Backend'e kavşak bilgisini gönder
+            const response = await fetch(`${API_URL}/stream/add-bursa-kavsak`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    player_url: kavsak.url,
+                    name: kavsak.name
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log("✅ Stream eklendi:", data);
+                
+                // Stream'i başlat
+                await fetch(`${API_URL}/stream/start/${data.source_id}`, { method: "POST" });
+                
+                // Aktif kaynak olarak ayarla
+                setActiveSource(data.source_id);
+                fetchSources();
+            } else {
+                const error = await response.json();
+                console.error("Stream hatası:", error);
+                setAnalysisActive(false);
+                alert(`❌ Hata: ${error.detail || 'Stream eklenemedi'}\n\nNot: Kamera aktif olmayabilir.`);
+            }
+        } catch (err) {
+            console.error("Analysis start error:", err);
+            setAnalysisActive(false);
+            alert("❌ Backend'e bağlanılamadı!");
+        }
+    };
+
+    // Analizi durdur
+    const stopAnalysis = async () => {
+        try {
+            await fetch(`${API_URL}/stream/stop-all`, { method: "POST" });
+            setAnalysisActive(false);
+            setActiveSource(null);
+            setFrame(null);
+            setPedestrians([]);
+            setMetrics(null);
+            fetchSources();
+        } catch (err) {
+            console.error("Stop error:", err);
+        }
+    };
+
+    // Webcam ile analiz başlat
+    const startWebcamAnalysis = async () => {
+        setAnalysisActive(true);
+        setIframeUrl("");
+        
+        try {
+            const response = await fetch(`${API_URL}/stream/add-webcam?device_id=0&name=Webcam`, {
+                method: "POST"
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                await fetch(`${API_URL}/stream/start/${data.source_id}`, { method: "POST" });
+                
+                // Aktif kaynak olarak ayarla
+                setActiveSource(data.source_id);
+                fetchSources();
+            }
+        } catch (err) {
+            console.error("Webcam error:", err);
+            setAnalysisActive(false);
+            alert("❌ Webcam başlatılamadı!");
         }
     };
 
@@ -192,9 +268,16 @@ export default function App() {
                 <div className="grid grid-cols-12 gap-6">
                     {/* Left Sidebar - Controls */}
                     <div className="col-span-12 lg:col-span-3 space-y-6">
-                        <ControlPanel />
+                        <ControlPanel 
+                            onVideoUploaded={(data) => {
+                                setAnalysisActive(true);
+                                setActiveSource(data.source_id);
+                                setIframeUrl("");
+                                fetchSources();
+                            }} 
+                        />
 
-                        {/* Kavşak Seçimi */}
+                        {/* Kavşak Seçimi ve Analiz Kontrolleri */}
                         <div className="glass-panel p-4 rounded-xl space-y-3">
                             <div className="flex items-center gap-2 text-slate-300 mb-2">
                                 <MapPin size={18} className="text-blue-400" />
@@ -204,6 +287,7 @@ export default function App() {
                                 value={selectedKavsak}
                                 onChange={handleKavsakChange}
                                 className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5"
+                                disabled={analysisActive}
                             >
                                 <option value="">📍 Bir Kavşak Seçin...</option>
                                 {BURSA_KAVSAK_KAMERALARI.map((kavsak) => (
@@ -213,6 +297,44 @@ export default function App() {
                                 ))}
                             </select>
 
+                            {/* Analiz Butonları */}
+                            <div className="flex gap-2">
+                                {!analysisActive ? (
+                                    <>
+                                        <button
+                                            onClick={startAnalysis}
+                                            disabled={!selectedKavsak}
+                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg text-sm font-medium transition-colors"
+                                        >
+                                            <Play size={16} fill="currentColor" />
+                                            Analiz Başlat
+                                        </button>
+                                        <button
+                                            onClick={startWebcamAnalysis}
+                                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
+                                            title="Webcam ile Analiz"
+                                        >
+                                            <Video size={16} />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={stopAnalysis}
+                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-medium transition-colors"
+                                    >
+                                        <Square size={16} fill="currentColor" />
+                                        Analizi Durdur
+                                    </button>
+                                )}
+                            </div>
+
+                            {analysisActive && (
+                                <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded-lg">
+                                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                                    Yaya analizi aktif - WebSocket üzerinden veri alınıyor
+                                </div>
+                            )}
+
                             <div className="relative">
                                 <input
                                     type="text"
@@ -220,6 +342,7 @@ export default function App() {
                                     value={streamUrl}
                                     onChange={(e) => setStreamUrl(e.target.value)}
                                     className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 pr-10"
+                                    disabled={analysisActive}
                                 />
                                 <button
                                     onClick={() => addHLSStream()}
@@ -281,12 +404,13 @@ export default function App() {
                     <div className="col-span-12 lg:col-span-6 flex flex-col gap-6">
                         <VideoDisplay
                             detections={pedestrians}
-                            status={iframeUrl ? "Aktif" : (activeSource ? "Aktif" : "Bekleniyor")}
+                            status={analysisActive ? "Aktif" : (iframeUrl ? "Önizleme" : "Bekleniyor")}
                             frame={frame}
                             frameShape={frameShape}
                             roadLengthMeters={10}
                             iframeUrl={iframeUrl}
                             selectedKavsakName={selectedKavsak ? BURSA_KAVSAK_KAMERALARI.find(k => k.id === Number(selectedKavsak))?.name : ""}
+                            analysisActive={analysisActive}
                         />
 
                         <MetricsCards metrics={metrics} />

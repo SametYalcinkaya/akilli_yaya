@@ -5,6 +5,12 @@ env/
 *.pyc
 *.pyo
 
+# Environment files (hassas bilgiler içerebilir)
+.env
+!.env.example
+frontend/.env
+!frontend/.env.example
+
 # Node
 node_modules/
 dist/
@@ -14,6 +20,12 @@ dist/
 
 # Datasets (too large for git)
 datasets/
+
+# Backend uploads
+backend/uploads/
+
+# Log dosyaları
+*.log
 
 # Training runs - sadece gereksiz dosyaları engelle
 runs/detect/

@@ -25,7 +25,8 @@ export function VideoDisplay({
     roadLengthMeters = 10,
     iframeUrl = "",
     selectedKavsakName = "",
-    onCalibrate = null
+    onCalibrate = null,
+    analysisActive = false
 }) {
     const [isCalibrating, setIsCalibrating] = useState(false);
     const [localCalib, setLocalCalib] = useState(calibrationLines);
@@ -55,13 +56,15 @@ export function VideoDisplay({
     const submitCalibration = useCallback(async () => {
         if (localCalib.length < 2) return;
 
+        const API_URL = `http://${import.meta.env.VITE_BACKEND_HOST || 'localhost:8001'}/api`;
+        
         try {
-            const response = await fetch('http://localhost:8001/api/calibrate', {
+            const response = await fetch(`${API_URL}/calibrate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    start_line: localCalib[0],
-                    end_line: localCalib[1],
+                    start_point: localCalib[0],
+                    end_point: localCalib[1],
                     road_length_m: roadLength
                 })
             });
@@ -132,20 +135,157 @@ export function VideoDisplay({
 
             {/* Video Container */}
             <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden group">
-                {iframeUrl ? (
+                {/* Analiz aktif ve frame var: WebSocket stream göster */}
+                {analysisActive && frame ? (
+                    <div className="relative w-full h-full flex items-center justify-center">
+                        {/* Kavşak Bilgisi */}
+                        <div className="absolute top-2 left-2 z-10 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-lg flex items-center gap-2">
+                            <MapPin size={14} className="text-cyan-400" />
+                            <span className="text-white text-sm font-medium">{selectedKavsakName || 'Akıllı Yaya Tespiti'}</span>
+                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                        </div>
+                        
+                        <img
+                            ref={imageRef}
+                            src={`data:image/jpeg;base64,${frame}`}
+                            alt="Stream"
+                            className="max-w-full max-h-full object-contain select-none"
+                            onClick={handleClick}
+                            onMouseMove={handleMouseMove}
+                            style={{ cursor: isCalibrating ? 'crosshair' : 'default' }}
+                        />
+
+                        {/* Overlay Layer */}
+                        {showOverlay && (
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox={`0 0 ${frameShape[1]} ${frameShape[0]}`} preserveAspectRatio="xMidYMid meet">
+                                {/* Detections */}
+                                {detections.map((det) => {
+                                    const color = CATEGORY_COLORS[det.category] || CATEGORY_COLORS.adult;
+                                    const categoryName = CATEGORY_NAMES[det.category] || 'Yetişkin';
+                                    return (
+                                        <g key={det.id}>
+                                            <rect
+                                                x={det.bbox[0]}
+                                                y={det.bbox[1]}
+                                                width={det.bbox[2] - det.bbox[0]}
+                                                height={det.bbox[3] - det.bbox[1]}
+                                                fill="none"
+                                                stroke={color}
+                                                strokeWidth="3"
+                                                className="drop-shadow-md"
+                                            />
+                                            <rect
+                                                x={det.bbox[0]}
+                                                y={det.bbox[1] - 24}
+                                                width="80"
+                                                height="22"
+                                                fill={color}
+                                                rx="4"
+                                            />
+                                            <text
+                                                x={det.bbox[0] + 5}
+                                                y={det.bbox[1] - 8}
+                                                fill="white"
+                                                fontSize="12"
+                                                fontWeight="bold"
+                                            >
+                                                {categoryName}
+                                            </text>
+                                        </g>
+                                    );
+                                })}
+
+                                {/* Calibration Lines */}
+                                {localCalib.map((point, i) => (
+                                    <circle key={i} cx={point[0]} cy={point[1]} r="6" fill="#f59e0b" stroke="white" strokeWidth="2" />
+                                ))}
+                                {localCalib.length === 2 && (
+                                    <line
+                                        x1={localCalib[0][0]} y1={localCalib[0][1]}
+                                        x2={localCalib[1][0]} y2={localCalib[1][1]}
+                                        stroke="#f59e0b" strokeWidth="3" strokeDasharray="8,4"
+                                    />
+                                )}
+                            </svg>
+                        )}
+                    </div>
+                ) : analysisActive && !frame ? (
+                    /* Analiz aktif ama frame henüz gelmedi: Yükleniyor göster */
+                    <div className="flex flex-col items-center justify-center gap-4 text-slate-400">
+                        <div className="w-16 h-16 border-4 border-slate-600 border-t-emerald-500 rounded-full animate-spin" />
+                        <div className="text-center">
+                            <p className="font-medium">HLS Stream Yükleniyor...</p>
+                            <p className="text-sm text-slate-500">Yaya tespiti başlatılıyor</p>
+                        </div>
+                    </div>
+                ) : iframeUrl ? (
                     <div className="relative w-full h-full flex flex-col">
                         {/* Kavşak Bilgisi */}
                         <div className="absolute top-2 left-2 z-10 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-lg flex items-center gap-2">
                             <MapPin size={14} className="text-cyan-400" />
                             <span className="text-white text-sm font-medium">{selectedKavsakName || 'Bursa Kavşak Kamerası'}</span>
                         </div>
+                        
+                        {/* iframe Video */}
                         <iframe
                             src={iframeUrl}
                             className="w-full h-full border-0"
                             allowFullScreen
                             allow="autoplay; encrypted-media"
                             title={selectedKavsakName || 'Bursa Kavşak Kamerası'}
+                            style={{ pointerEvents: isCalibrating ? 'none' : 'auto' }}
                         />
+                        
+                        {/* Kalibrasyon Overlay - iframe üzerinde çalışır - sadece nokta seçimi için */}
+                        {isCalibrating && localCalib.length < 2 && (
+                            <div 
+                                ref={imageRef}
+                                className="absolute inset-0 z-20"
+                                style={{ cursor: 'crosshair' }}
+                                onClick={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const x = Math.round(((e.clientX - rect.left) / rect.width) * frameShape[1]);
+                                    const y = Math.round(((e.clientY - rect.top) / rect.height) * frameShape[0]);
+                                    
+                                    const newPoints = [...localCalib, [x, y]];
+                                    setLocalCalib(newPoints);
+                                    console.log("Kalibrasyon noktası eklendi:", [x, y]);
+                                }}
+                                onMouseMove={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setMousePos({
+                                        x: Math.round(((e.clientX - rect.left) / rect.width) * frameShape[1]),
+                                        y: Math.round(((e.clientY - rect.top) / rect.height) * frameShape[0])
+                                    });
+                                }}
+                            >
+                                {/* Kalibrasyon Çizimleri */}
+                                <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox={`0 0 ${frameShape[1]} ${frameShape[0]}`} preserveAspectRatio="none">
+                                    {localCalib.map((point, i) => (
+                                        <circle key={i} cx={point[0]} cy={point[1]} r="8" fill="#f59e0b" stroke="white" strokeWidth="3" />
+                                    ))}
+                                </svg>
+                                
+                                {/* Mouse pozisyonu göstergesi */}
+                                <div className="absolute bottom-4 right-4 bg-black/80 text-white text-xs px-3 py-2 rounded-lg font-mono">
+                                    📍 X: {mousePos.x}, Y: {mousePos.y}
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Kalibrasyon tamamlandıktan sonra sadece çizgiyi göster */}
+                        {isCalibrating && localCalib.length === 2 && (
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox={`0 0 ${frameShape[1]} ${frameShape[0]}`} preserveAspectRatio="none">
+                                {localCalib.map((point, i) => (
+                                    <circle key={i} cx={point[0]} cy={point[1]} r="8" fill="#f59e0b" stroke="white" strokeWidth="3" />
+                                ))}
+                                <line
+                                    x1={localCalib[0][0]} y1={localCalib[0][1]}
+                                    x2={localCalib[1][0]} y2={localCalib[1][1]}
+                                    stroke="#f59e0b" strokeWidth="4" strokeDasharray="10,6"
+                                />
+                            </svg>
+                        )}
                     </div>
                 ) : frame ? (
                     <div className="relative w-full h-full flex items-center justify-center">
@@ -245,7 +385,7 @@ export function VideoDisplay({
 
                 {/* Calibration Instructions Overlay */}
                 {isCalibrating && (
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white px-4 py-3 rounded-xl shadow-lg backdrop-blur-sm z-10 border border-amber-500/30">
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white px-4 py-3 rounded-xl shadow-lg backdrop-blur-sm z-30 border border-amber-500/30">
                         <div className="flex items-center gap-2 mb-2">
                             <MousePointer2 size={16} className="text-amber-400" />
                             <span className="text-sm font-medium">
