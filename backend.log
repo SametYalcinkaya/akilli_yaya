@@ -1,0 +1,8 @@
+🚀 Akıllı Yaya Güvenliği Sistemi başlatılıyor...
+⚠️ Model bulunamadı: None
+⚠️ Model yüklenemedi - varsayılan COCO modeli kullanılacak
+✅ Sistem hazır!
+Extracted HLS URL: https://canliyayin.bursa.bel.tr/cdnlive/yunusemrekavsagi_720p.stream/playlist.m3u8?t=xsxiklOoy5uGvp6HHGAZCw&e=1769260622
+INFO:     127.0.0.1:51791 - "POST /api/stream/add-bursa-kavsak HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60248 - "POST /api/stream/start/bursa_yunusemrekavsagi_720p HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52784 - "GET /api/stream/sources HTTP/1.1" 200 OK

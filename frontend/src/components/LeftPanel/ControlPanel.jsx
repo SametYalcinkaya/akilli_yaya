@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { Camera, Upload, StopCircle, RotateCcw, Activity } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_BACKEND_API || "http://localhost:8001";
 
@@ -70,15 +71,20 @@ export function ControlPanel() {
     };
 
     return (
-        <div className="space-y-3">
+        <div className="glass-panel p-4 rounded-xl space-y-4">
+            <div className="flex items-center gap-2 text-slate-300 mb-2">
+                <Activity size={18} className="text-brand-primary" />
+                <h3 className="font-semibold text-sm uppercase tracking-wider">Kontrol Paneli</h3>
+            </div>
+
             {/* Ana kontroller */}
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 gap-3">
                 {/* Kamera Başlat */}
                 <button
                     onClick={startCamera}
-                    className="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-emerald-950 shadow-md shadow-emerald-900/30 hover:bg-emerald-400 transition-colors"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-emerald-600/20 border border-emerald-500/30 px-4 py-3 text-sm font-medium text-emerald-400 hover:bg-emerald-600/30 hover:border-emerald-500/50 transition-all duration-200 group"
                 >
-                    <span>📷</span>
+                    <Camera size={18} className="group-hover:scale-110 transition-transform" />
                     <span>Canlı Kamera</span>
                 </button>
 
@@ -86,34 +92,35 @@ export function ControlPanel() {
                 <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
-                    className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2.5 text-sm font-semibold text-blue-950 shadow-md shadow-blue-900/30 hover:bg-blue-400 transition-colors disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-blue-600/20 border border-blue-500/30 px-4 py-3 text-sm font-medium text-blue-400 hover:bg-blue-600/30 hover:border-blue-500/50 transition-all duration-200 group disabled:opacity-50"
                 >
-                    <span>🎬</span>
+                    <Upload size={18} className="group-hover:scale-110 transition-transform" />
                     <span>{uploading ? "Yükleniyor..." : "Video Yükle"}</span>
                 </button>
 
                 {/* Durdur */}
                 <button
                     onClick={stopStream}
-                    className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-amber-950 shadow-md shadow-amber-900/30 hover:bg-amber-400 transition-colors"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-amber-600/20 border border-amber-500/30 px-4 py-3 text-sm font-medium text-amber-400 hover:bg-amber-600/30 hover:border-amber-500/50 transition-all duration-200 group"
                 >
-                    <span>⏹️</span>
+                    <StopCircle size={18} className="group-hover:scale-110 transition-transform" />
                     <span>Durdur</span>
                 </button>
 
                 {/* Reset */}
                 <button
                     onClick={resetSystem}
-                    className="flex items-center gap-2 rounded-lg bg-slate-600 px-4 py-2.5 text-sm font-semibold text-slate-100 shadow-md shadow-slate-900/30 hover:bg-slate-500 transition-colors"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-slate-700/30 border border-slate-600/30 px-4 py-3 text-sm font-medium text-slate-300 hover:bg-slate-700/50 hover:border-slate-500/50 transition-all duration-200 group"
                 >
-                    <span>🔄</span>
-                    <span>Reset</span>
+                    <RotateCcw size={18} className="group-hover:-rotate-180 transition-transform duration-500" />
+                    <span>Sıfırla</span>
                 </button>
             </div>
 
             {/* Durum göstergesi */}
             {status && (
-                <div className="text-sm text-slate-300 bg-slate-800/50 rounded-lg px-3 py-2">
+                <div className="fade-in flex items-center gap-2 text-sm text-slate-300 bg-slate-800/80 border border-slate-700 rounded-lg px-4 py-3">
+                    <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse"></div>
                     {status}
                 </div>
             )}
@@ -128,9 +135,9 @@ export function ControlPanel() {
             />
 
             {/* Yardım metni */}
-            <div className="text-xs text-slate-500">
-                💡 <strong>Canlı Kamera:</strong> Webcam'den gerçek zamanlı analiz |{" "}
-                <strong>Video Yükle:</strong> Önceden kaydedilmiş video analizi
+            <div className="text-xs text-slate-500 px-1">
+                <p className="mb-1">💡 <strong>Canlı Kamera:</strong> Webcam analizi başlatır.</p>
+                <p>💡 <strong>Video Yükle:</strong> Kayıtlı video dosyasını analiz eder.</p>
             </div>
         </div>
     );

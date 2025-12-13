@@ -1,0 +1,16 @@
+INFO:     Started server process [11608]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+Exception in thread Thread-1 (_capture_loop):
+Traceback (most recent call last):
+  File "C:\Program Files\Python313\Lib\threading.py", line 1041, in _bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Program Files\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\mikai\OneDrive\Belgeler\GitHub\akilli_yaya\backend\stream_handler.py", line 186, in _capture_loop
+    os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "headers;Referer: https://player.bursa.bel.tr/"
+    ^^
+NameError: name 'os' is not defined. Did you forget to import 'os'?

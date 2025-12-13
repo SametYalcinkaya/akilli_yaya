@@ -1,0 +1,83 @@
+Bursa Büyükşehir Belediyesi - Kavşak Kameraları Player URL'leri
+==============================================================
+
+1. Yunus Emre Kavşağı
+   https://player.bursa.bel.tr/?stream=yunusemrekavsagi_720p
+
+2. Ata Bulvarı Kavşağı
+   https://player.bursa.bel.tr/?stream=atabulvarikavsagi_720p
+
+3. Mimar Sinan Kavşağı 2
+   https://player.bursa.bel.tr/?stream=mimarsinankavsagi2_720p
+
+4. Gümüştepe Kavşağı
+   https://player.bursa.bel.tr/?stream=gumustepekavsagi_720p
+
+5. Kestel Kavşağı
+   https://player.bursa.bel.tr/?stream=kestelkavsagi_720p
+
+6. Gürsu Kavşağı
+   https://player.bursa.bel.tr/?stream=gursukavsagi_720p
+
+7. Merinos Kavşağı (Stadyum Cad. Girişi)
+   https://player.bursa.bel.tr/?stream=merinoskavsagi_720p
+
+8. Zübeyde Hanım Kavşağı
+   https://player.bursa.bel.tr/?stream=zubeydekavsagi_720p
+
+9. Küçük Sanayi Kavşağı - Beşevler
+   https://player.bursa.bel.tr/?stream=kucuksanayikavsagi_720p
+
+10. Demirtaş Kavşağı
+    https://player.bursa.bel.tr/?stream=demirtaskavsagi_720p
+
+11. Polis Okulu Kavşağı
+    https://player.bursa.bel.tr/?stream=polisokulu_720p
+
+12. Mihraplı Kavşağı
+    https://player.bursa.bel.tr/?stream=mihraplikavsagi_720p
+
+13. Gökdere Kavşağı
+    https://player.bursa.bel.tr/?stream=gokderekavsagi_720p
+
+14. Mimar Sinan Kavşağı
+    https://player.bursa.bel.tr/?stream=mimarsinankavsagi_720p
+
+15. Buttim Kavşağı
+    https://player.bursa.bel.tr/?stream=buttimkavsagi_720p
+
+16. Küçüksanayi Gül Kavşağı
+    https://player.bursa.bel.tr/?stream=kucuksanayigulkavsagi_720p
+
+17. Emek Kavşağı (Korupark önü)
+    https://player.bursa.bel.tr/?stream=emekkavsagi_720p
+
+18. Otosansit Kavşağı
+    https://player.bursa.bel.tr/?stream=otosansitkavsagi_720p
+
+19. Orhaneli Kavşağı 2
+    https://player.bursa.bel.tr/?stream=orhanelikavsagi2_720p
+
+20. Beşevler Kavşağı
+    https://player.bursa.bel.tr/?stream=besevlerkavsagi_720p
+
+21. Ata Bulvarı Durmazlar Kavşağı
+    https://player.bursa.bel.tr/?stream=durmazlarkavsagi_720p
+
+22. Eğitim-Tezok Kavşağı
+    https://player.bursa.bel.tr/?stream=egitimtezokkavsagi_720p
+
+23. Mesken Kavşağı
+    https://player.bursa.bel.tr/?stream=meskenkavsagi_720p
+
+24. Yüksek İhtisas Kavşağı
+    https://player.bursa.bel.tr/?stream=yuksekihtisaskavsagi_720p
+
+25. Orhaneli Kavşağı
+    https://player.bursa.bel.tr/?stream=orhanelikavsagi_720p
+
+26. Esentepe Kavşağı
+    https://player.bursa.bel.tr/?stream=esentepekavsagi_720p
+
+27. Stadyum - Acemler - Mudanya Kavşağı
+    https://player.bursa.bel.tr/?stream=stadyumacemler_720p
