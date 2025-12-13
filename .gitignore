@@ -15,3 +15,9 @@ dist/
 
 # VSCode
 .vscode/
+
+# Datasets (too large for git)
+datasets/
+
+# Training runs
+runs/

@@ -24,6 +24,7 @@ app.add_middleware(
 class CalibratePayload(BaseModel):
     start_line: List[float] = Field(..., description="[x, y] start pixel")
     end_line: List[float] = Field(..., description="[x, y] end pixel")
+    road_length_m: float = Field(8.0, description="Gerçek yol uzunluğu (metre)")
 
 
 class StatusResponse(BaseModel):
@@ -36,11 +37,15 @@ detection = DetectionEngine()
 tracking = TrackingSystem()
 decision = DecisionAlgorithm()
 traffic = TrafficController()
+last_tick = asyncio.Lock()
+last_ts: float = 0.0
 
 
 @app.post("/api/calibrate")
 async def calibrate(payload: CalibratePayload) -> Dict[str, str]:
     camera.set_calibration_lines(payload.start_line, payload.end_line)
+    tracking.set_calibration_lines(payload.start_line, payload.end_line)
+    tracking.road_length_m = payload.road_length_m
     return {"status": "ok"}
 
 
@@ -48,6 +53,12 @@ async def calibrate(payload: CalibratePayload) -> Dict[str, str]:
 async def start() -> Dict[str, str]:
     camera.start()
     return {"status": "started"}
+
+
+@app.post("/api/start-video")
+async def start_video(video_path: str) -> Dict[str, str]:
+    camera.load_video(video_path)
+    return {"status": "video started", "path": video_path}
 
 
 @app.post("/api/stop")
@@ -78,16 +89,21 @@ async def ws_video_stream(websocket: WebSocket) -> None:
             frame_b64 = camera.get_frame_base64(frame)
 
             detections = detection.detect_persons(frame) if frame is not None else []
-            tracked = tracking.update_tracks(detections)
+            frame_height = frame.shape[0] if hasattr(frame, "shape") else 360
+            frame_width = frame.shape[1] if hasattr(frame, "shape") else 640
+            tracked = tracking.update_tracks(detections, frame_height=frame_height)
             metrics = decision.calculate_required_time(tracked)
-            traffic.synchronize_lights(metrics.get("extension_time", 0.0))
+            traffic.apply_extension(metrics.get("extension_time", 0.0))
 
             await websocket.send_json(
                 {
                     "frame": frame_b64,
+                    "frame_shape": [frame_height, frame_width],
                     "detections": detections,
                     "tracking": tracked,
                     "metrics": metrics,
+                    "calibration_lines": camera.calibration_lines,
+                    "road_length_m": tracking.road_length_m,
                 }
             )
             await asyncio.sleep(0.1)
@@ -98,10 +114,27 @@ async def ws_video_stream(websocket: WebSocket) -> None:
 @app.websocket("/ws/traffic-state")
 async def ws_traffic_state(websocket: WebSocket) -> None:
     await websocket.accept()
+    global last_ts
+    last_ts = asyncio.get_event_loop().time()
     try:
         while True:
+            now = asyncio.get_event_loop().time()
+            dt = now - last_ts
+            last_ts = now
+            traffic.tick(dt)
             state: Dict[str, Any] = traffic.get_current_state()
-            await websocket.send_json(state)
+            await websocket.send_json(
+                {
+                    "state": state,
+                    "cycle_duration": traffic.base_green,
+                    "active_direction": traffic.directions[traffic.active_index],
+                }
+            )
             await asyncio.sleep(0.5)
     except WebSocketDisconnect:
         return
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { ControlPanel } from "./components/LeftPanel/ControlPanel.jsx";
 import { MetricsCards } from "./components/LeftPanel/MetricsCards.jsx";
 import { VideoDisplay } from "./components/LeftPanel/VideoDisplay.jsx";
-import { IntersectionMap } from "./components/RightPanel/IntersectionMap.jsx";
+import { Simulation } from "./components/RightPanel/Simulation.jsx";
 import { StatusBadge } from "./components/shared/StatusBadge.jsx";
 import { useWebSocket } from "./hooks/useWebSocket.js";
 
@@ -22,7 +22,7 @@ export default function App() {
     }, [videoSocket.data]);
 
     return (
-        <div className="mx-auto max-w-6xl space-y-6 px-6 py-6">
+        <div className="w-full min-h-screen space-y-6 px-6 py-6">
             <header className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <p className="text-xs uppercase tracking-wide text-emerald-300">MVP 1.0</p>
@@ -35,23 +35,26 @@ export default function App() {
                 </div>
             </header>
 
-            <main className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-                <section className="lg:col-span-3 space-y-4">
+            <main className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                <section className="lg:col-span-5 space-y-4">
                     <VideoDisplay
                         detections={videoSocket.data?.detections || []}
                         status={videoSocket.status}
                         frame={videoSocket.data?.frame}
+                        frameShape={videoSocket.data?.frame_shape}
+                        calibrationLines={videoSocket.data?.calibration_lines}
+                        roadLengthMeters={videoSocket.data?.road_length_m}
                     />
                     <MetricsCards metrics={metrics} />
                     <ControlPanel />
                 </section>
 
-                <section className="lg:col-span-2 space-y-4">
+                <section className="lg:col-span-7 space-y-4">
                     <div className="flex items-center justify-between">
                         <p className="text-sm font-semibold text-slate-200">Trafik Simülasyonu</p>
-                        <span className="text-xs text-slate-400">Senkronizasyon</span>
+                        <span className="text-xs text-slate-400">Gerçek ışık akışı</span>
                     </div>
-                    <IntersectionMap state={trafficSocket.data || undefined} />
+                    <Simulation />
                 </section>
             </main>
         </div>

@@ -1,4 +1,4 @@
-# Akıllı Yaya Güvenliği Sistemi - MVP Planı
+ # Akıllı Yaya Güvenliği Sistemi - MVP Planı
 ## Product Requirements Document (PRD)
 
 **Proje Adı:** Akıllı Yaya Güvenliği - Görüntü Tabanlı Işık Süresi Uyarlama Sistemi  

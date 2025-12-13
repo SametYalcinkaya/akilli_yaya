@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<net version="1.9" junctionCornerDetail="5" limitTurnSpeed="2.50">
+    <location netOffset="0.00,0.00" convBoundary="-150.00,-150.00,150.00,150.00" origBoundary="-150.00,-150.00,150.00,150.00" projParameter="!"/>
+    <edge id="east_in" from="e_in" to="center" priority="3" numLanes="2" speed="13.9"/>
+    <edge id="west_in" from="w_in" to="center" priority="3" numLanes="2" speed="13.9"/>
+    <edge id="north_in" from="n_in" to="center" priority="3" numLanes="2" speed="13.9"/>
+    <edge id="south_in" from="s_in" to="center" priority="3" numLanes="2" speed="13.9"/>
+    <edge id="east_out" from="center" to="e_out" priority="3" numLanes="2" speed="13.9"/>
+    <edge id="west_out" from="center" to="w_out" priority="3" numLanes="2" speed="13.9"/>
+    <edge id="north_out" from="center" to="n_out" priority="3" numLanes="2" speed="13.9"/>
+    <edge id="south_out" from="center" to="s_out" priority="3" numLanes="2" speed="13.9"/>
+    <junction id="center" type="traffic_light" x="0.00" y="0.00" incLanes="east_in_0 east_in_1 west_in_0 west_in_1 north_in_0 north_in_1 south_in_0 south_in_1" intLanes=":center_0 :center_1 :center_2 :center_3 :center_4 :center_5 :center_6 :center_7" shape="-10.00,10.00 10.00,10.00 10.00,-10.00 -10.00,-10.00"/>
+    <junction id="e_in" type="priority" x="150.00" y="0.00" incLanes="" intLanes="" shape="150.00,0.00 150.00,0.00 150.00,0.00 150.00,0.00"/>
+    <junction id="e_out" type="priority" x="300.00" y="0.00" incLanes="east_out_0 east_out_1" intLanes="" shape="300.00,0.00 300.00,0.00 300.00,0.00 300.00,0.00"/>
+    <junction id="w_in" type="priority" x="-150.00" y="0.00" incLanes="" intLanes="" shape="-150.00,0.00 -150.00,0.00 -150.00,0.00 -150.00,0.00"/>
+    <junction id="w_out" type="priority" x="-300.00" y="0.00" incLanes="west_out_0 west_out_1" intLanes="" shape="-300.00,0.00 -300.00,0.00 -300.00,0.00 -300.00,0.00"/>
+    <junction id="n_in" type="priority" x="0.00" y="150.00" incLanes="" intLanes="" shape="0.00,150.00 0.00,150.00 0.00,150.00 0.00,150.00"/>
+    <junction id="n_out" type="priority" x="0.00" y="300.00" incLanes="north_out_0 north_out_1" intLanes="" shape="0.00,300.00 0.00,300.00 0.00,300.00 0.00,300.00"/>
+    <junction id="s_in" type="priority" x="0.00" y="-150.00" incLanes="" intLanes="" shape="0.00,-150.00 0.00,-150.00 0.00,-150.00 0.00,-150.00"/>
+    <junction id="s_out" type="priority" x="0.00" y="-300.00" incLanes="south_out_0 south_out_1" intLanes="" shape="0.00,-300.00 0.00,-300.00 0.00,-300.00 0.00,-300.00"/>
+</net>

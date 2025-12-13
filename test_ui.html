@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akıllı Yaya - Test UI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #10b981;
+            margin-bottom: 20px;
+        }
+
+        .panel {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .status.connected {
+            background: #10b981;
+            color: white;
+        }
+
+        .status.disconnected {
+            background: #ef4444;
+            color: white;
+        }
+
+        button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background: #059669;
+        }
+
+        button:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+        }
+
+        #video {
+            width: 100%;
+            max-width: 800px;
+            border-radius: 8px;
+        }
+
+        #log {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 6px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 4px 0;
+        }
+
+        .log-info {
+            color: #60a5fa;
+        }
+
+        .log-success {
+            color: #10b981;
+        }
+
+        .log-error {
+            color: #ef4444;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #10b981;
+        }
+
+        .metric-label {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+
+        .traffic-light {
+            display: inline-block;
+            width: 60px;
+            height: 150px;
+            background: #1e293b;
+            border-radius: 10px;
+            padding: 10px;
+            margin: 0 auto;
+        }
+
+        .light {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 5px 0;
+            background: #334155;
+            transition: all 0.3s ease;
+        }
+
+        .light.red-on {
+            background: #ef4444;
+            box-shadow: 0 0 20px #ef4444;
+        }
+
+        .light.yellow-on {
+            background: #f59e0b;
+            box-shadow: 0 0 20px #f59e0b;
+        }
+
+        .light.green-on {
+            background: #10b981;
+            box-shadow: 0 0 20px #10b981;
+        }
+
+        /* Yeni layout ve simülasyon stilleri */
+        .layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .left-column {
+            flex: 0.4;
+            min-width: 420px;
+        }
+
+        .right-column {
+            flex: 0.6;
+        }
+
+        .sim-wrapper {
+            position: relative;
+            background: #0b1224;
+            border-radius: 12px;
+            padding: 10px;
+            border: 1px solid #1f2937;
+        }
+
+        #simCanvas {
+            width: 100%;
+            height: 480px;
+            display: block;
+            border-radius: 10px;
+            background: #0f172a;
+        }
+
+        .camera-chip-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .camera-chip {
+            background: #0f172a;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .camera-chip.active {
+            border-color: #10b981;
+            color: #10b981;
+            box-shadow: 0 0 0 1px #10b98133;
+        }
+
+        .camera-chip:hover {
+            border-color: #10b981;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🚦 Akıllı Yaya Güvenliği - Simülasyon</h1>
+
+        <div class="layout">
+            <!-- Sol kolon: Kamera ve video kontrolü -->
+            <div class="left-column">
+                <div class="panel">
+                    <span id="status" class="status disconnected">Bağlantı Kesildi</span>
+                    <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="connect()">Bağlan</button>
+                        <button onclick="disconnect()">Kes</button>
+                        <button onclick="startCamera()">Canlı Kamera</button>
+                        <button onclick="stopCamera()">Kapat</button>
+                    </div>
+
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #334155;">
+                        <h4 style="margin-bottom: 10px;">Seçili Edge Kamera: <span id="activeCameraLabel">Kamera
+                                N</span></h4>
+                        <p style="font-size: 14px; color: #94a3b8; margin-bottom: 10px;">Video yükleyin veya canlı
+                            kamerayı açın. Seçilen içerik sağdaki kavşakta o kameradan geliyormuş gibi simüle edilir.
+                        </p>
+                        <select id="videoSelect"
+                            style="width: 100%; padding: 8px; border-radius: 6px; background: #0f172a; color: #e2e8f0; border: 1px solid #334155;">
+                            <option value="">Webcam (Canlı)</option>
+                            <option value="test_videos/elderly_slow.mp4">Senaryo 1: Yaşlı Kişi</option>
+                            <option value="test_videos/child_running.mp4">Senaryo 2: Çocuk Koşarak</option>
+                            <option value="test_videos/wheelchair_crossing.mp4">Senaryo 3: Tekerlekli Sandalye</option>
+                            <option value="test_videos/group_mixed.mp4">Senaryo 4: Kalabalık Grup</option>
+                            <option value="test_videos/false_positive.mp4">Senaryo 5: Yanlış Tespit</option>
+                        </select>
+                        <button onclick="startSelectedVideo()" style="margin-top: 10px; width: 100%;">Seçili Videoyu
+                            Başlat</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Canlı / Video Akışı</h3>
+                    <canvas id="video" width="640" height="480"
+                        style="width: 100%; max-width: 800px; border-radius: 8px; background: #000; cursor: crosshair;"></canvas>
+                    <div style="margin-top: 15px;">
+                        <h4>Kalibrasyon Çizgileri</h4>
+                        <p style="font-size: 14px; color: #94a3b8; margin: 10px 0;">Video üzerine tıklayarak yaya
+                            geçidinin
+                            başlangıç ve bitiş çizgilerini ayarlayın</p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; color: #10b981;">Başlangıç Çizgisi
+                                    (Y):</label>
+                                <input type="range" id="startLine" min="0" max="480" value="200" style="width: 100%;"
+                                    oninput="updateCalibrationLines()">
+                                <span id="startLineValue" style="color: #10b981; font-weight: bold;">200px</span>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; color: #f59e0b;">Bitiş Çizgisi
+                                    (Y):</label>
+                                <input type="range" id="endLine" min="0" max="480" value="350" style="width: 100%;"
+                                    oninput="updateCalibrationLines()">
+                                <span id="endLineValue" style="color: #f59e0b; font-weight: bold;">350px</span>
+                            </div>
+                        </div>
+                        <button onclick="resetCalibration()"
+                            style="margin-top: 10px; background: #64748b;">Sıfırla</button>
+                        <button onclick="saveCalibration()" style="margin-top: 10px;">Kaydet</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Metrikler</h3>
+                    <div class="metrics">
+                        <div class="metric-card">
+                            <div class="metric-value" id="personCount">0</div>
+                            <div class="metric-label">Tespit Edilen</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="criticalPerson">-</div>
+                            <div class="metric-label">Kritik Kişi</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="extensionTime">0s</div>
+                            <div class="metric-label">Ek Süre</div>
+                        </div>
+                        <div class="metric-card">
+                            <div style="display: flex; justify-content: center; margin-bottom: 10px;">
+                                <div class="traffic-light">
+                                    <div class="light" id="redLight"></div>
+                                    <div class="light" id="yellowLight"></div>
+                                    <div class="light" id="greenLight"></div>
+                                </div>
+                            </div>
+                            <div class="metric-value" id="trafficState">-</div>
+                            <div class="metric-label">Işık Durumu</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>Log</h3>
+                    <div id="log"></div>
+                </div>
+            </div>
+
+            <!-- Sağ kolon: Kavşak simülasyonu -->
+            <div class="right-column">
+                <div class="panel">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <div>
+                            <h3>4-Yol Kavşak Simülasyonu</h3>
+                            <p style="color: #94a3b8; font-size: 14px; margin-top: 4px;">Edge kamerayı seçin, sol
+                                tarafta o kamera için video/akışı başlatın.</p>
+                        </div>
+                        <div class="camera-chip-row" id="cameraChips">
+                            <button class="camera-chip active" data-id="cam_n" onclick="setActiveCamera('cam_n')">Kamera
+                                N</button>
+                            <button class="camera-chip" data-id="cam_e" onclick="setActiveCamera('cam_e')">Kamera
+                                E</button>
+                            <button class="camera-chip" data-id="cam_s" onclick="setActiveCamera('cam_s')">Kamera
+                                S</button>
+                            <button class="camera-chip" data-id="cam_w" onclick="setActiveCamera('cam_w')">Kamera
+                                W</button>
+                        </div>
+                    </div>
+
+                    <div class="sim-wrapper" style="margin-top: 15px;">
+                        <canvas id="simCanvas" width="900" height="520"></canvas>
+                    </div>
+                    <p style="margin-top: 10px; color: #94a3b8; font-size: 13px;">Not: Bu görsel, trafik ışığı durumunu
+                        ve seçili edge kameranın konumunu temsil eden interaktif bir simülasyondur.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let wsTraffic = null;
+        let stream = null;
+
+        // Kavşak ve kamera durumu
+        let activeCamera = 'cam_n';
+        let simTrafficState = 'red';
+        let trafficAuthority = 'local'; // local | backend
+        let simCanvas = null;
+        let simCtx = null;
+
+        // Dinamik simülasyon durumları
+        let cars = [];
+        let pedestrians = [];
+        let lastFrameTime = null;
+        let carSpawnTimer = 0;
+        let pedSpawnTimer = 0;
+
+        // Araç ve yaya ışıkları
+        let vehPhase = 'NS_GREEN';
+        let vehLights = { N: 'green', E: 'red', S: 'green', W: 'red' };
+        let pedLights = { N: 'green', E: 'red', S: 'green', W: 'red' };
+
+        const cameraLabels = {
+            cam_n: 'Kamera N',
+            cam_e: 'Kamera E',
+            cam_s: 'Kamera S',
+            cam_w: 'Kamera W'
+        };
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+        }
+
+        function setActiveCamera(id) {
+            activeCamera = id;
+            const label = document.getElementById('activeCameraLabel');
+            if (label) label.textContent = cameraLabels[id] || id;
+
+            document.querySelectorAll('.camera-chip').forEach(chip => {
+                chip.classList.toggle('active', chip.dataset.id === id);
+            });
+
+            drawIntersection();
+            log(`${cameraLabels[id] || id} seçildi`, 'info');
+        }
+
+        function initSimCanvas() {
+            simCanvas = document.getElementById('simCanvas');
+            if (!simCanvas) return;
+            simCtx = simCanvas.getContext('2d');
+            drawIntersection();
+        }
+
+        function drawIntersection() {
+            if (!simCtx || !simCanvas) return;
+            const w = simCanvas.width;
+            const h = simCanvas.height;
+
+            simCtx.clearRect(0, 0, w, h);
+
+            // Yol gövdesi
+            simCtx.fillStyle = '#111827';
+            simCtx.fillRect(0, h * 0.35, w, h * 0.3);
+            simCtx.fillRect(w * 0.35, 0, w * 0.3, h);
+
+            // Şeritler
+            simCtx.strokeStyle = '#e5e7eb33';
+            simCtx.lineWidth = 2;
+            const laneStep = 30;
+            for (let x = -50; x < w; x += laneStep * 2) {
+                simCtx.beginPath();
+                simCtx.moveTo(x, h * 0.5);
+                simCtx.lineTo(x + laneStep, h * 0.5);
+                simCtx.stroke();
+            }
+            for (let y = -50; y < h; y += laneStep * 2) {
+                simCtx.beginPath();
+                simCtx.moveTo(w * 0.5, y);
+                simCtx.lineTo(w * 0.5, y + laneStep);
+                simCtx.stroke();
+            }
+
+            // Yaya geçitleri
+            simCtx.fillStyle = '#e5e7eb';
+            const cross = 8;
+            for (let i = 0; i < cross; i++) {
+                const offset = i * 14;
+                // Kuzey
+                simCtx.fillRect(w * 0.35 + offset, h * 0.35 - 30, 10, 30);
+                // Güney
+                simCtx.fillRect(w * 0.35 + offset, h * 0.65, 10, 30);
+                // Batı
+                simCtx.fillRect(w * 0.35 - 30, h * 0.35 + offset, 30, 10);
+                // Doğu
+                simCtx.fillRect(w * 0.65, h * 0.35 + offset, 30, 10);
+            }
+
+            // Trafik ışığı durumu (yaya)
+            const pedLightPos = [
+                { x: w * 0.35 - 40, y: h * 0.35 - 40, key: 'N' }, // NW (across north)
+                { x: w * 0.65 + 10, y: h * 0.35 - 40, key: 'E' }, // NE (across east)
+                { x: w * 0.35 - 40, y: h * 0.65 + 10, key: 'W' }, // SW (across west)
+                { x: w * 0.65 + 10, y: h * 0.65 + 10, key: 'S' }, // SE (across south)
+            ];
+
+            pedLightPos.forEach(pos => {
+                simCtx.fillStyle = '#1f2937';
+                simCtx.fillRect(pos.x, pos.y, 26, 70);
+
+                const states = ['red', 'yellow', 'green'];
+                states.forEach((s, idx) => {
+                    const cy = pos.y + 12 + idx * 20;
+                    simCtx.beginPath();
+                    simCtx.arc(pos.x + 13, cy, 8, 0, Math.PI * 2);
+                    simCtx.fillStyle = pedLights[pos.key] === s ?
+                        (s === 'red' ? '#ef4444' : s === 'yellow' ? '#f59e0b' : '#10b981') : '#334155';
+                    simCtx.fill();
+                });
+            });
+
+            // Araç ışıkları girişlerde
+            const vehLightPos = {
+                N: { x: w * 0.5 - 12, y: h * 0.30 },
+                S: { x: w * 0.5 - 12, y: h * 0.70 - 40 },
+                E: { x: w * 0.70 - 40, y: h * 0.5 - 12 },
+                W: { x: w * 0.30, y: h * 0.5 - 12 }
+            };
+
+            Object.entries(vehLightPos).forEach(([key, pos]) => {
+                simCtx.fillStyle = '#1f2937';
+                simCtx.fillRect(pos.x, pos.y, key === 'N' || key === 'S' ? 24 : 70, key === 'N' || key === 'S' ? 70 : 24);
+
+                const drawLamp = (cx, cy, state) => {
+                    simCtx.beginPath();
+                    simCtx.arc(cx, cy, 8, 0, Math.PI * 2);
+                    simCtx.fillStyle = vehLights[key] === state ?
+                        (state === 'red' ? '#ef4444' : state === 'yellow' ? '#f59e0b' : '#10b981') : '#334155';
+                    simCtx.fill();
+                };
+
+                if (key === 'N' || key === 'S') {
+                    drawLamp(pos.x + 12, pos.y + 12, 'red');
+                    drawLamp(pos.x + 12, pos.y + 35, 'yellow');
+                    drawLamp(pos.x + 12, pos.y + 58, 'green');
+                } else {
+                    drawLamp(pos.x + 12, pos.y + 12, 'red');
+                    drawLamp(pos.x + 35, pos.y + 12, 'yellow');
+                    drawLamp(pos.x + 58, pos.y + 12, 'green');
+                }
+            });
+
+            // Kamera konumları
+            const camPos = {
+                cam_n: { x: w * 0.5, y: h * 0.2 },
+                cam_e: { x: w * 0.8, y: h * 0.5 },
+                cam_s: { x: w * 0.5, y: h * 0.8 },
+                cam_w: { x: w * 0.2, y: h * 0.5 },
+            };
+
+            Object.entries(camPos).forEach(([id, pos]) => {
+                simCtx.beginPath();
+                simCtx.fillStyle = id === activeCamera ? '#10b981' : '#3b82f6';
+                simCtx.strokeStyle = '#0b0f1a';
+                simCtx.lineWidth = 2;
+                simCtx.arc(pos.x, pos.y, 12, 0, Math.PI * 2);
+                simCtx.fill();
+                simCtx.stroke();
+
+                simCtx.fillStyle = '#0b0f1a';
+                simCtx.font = '12px Arial';
+                simCtx.textAlign = 'center';
+                simCtx.fillText(id.split('_')[1].toUpperCase(), pos.x, pos.y + 4);
+            });
+
+            // Araçlar
+            cars.forEach(car => {
+                simCtx.save();
+                simCtx.translate(car.x, car.y);
+                simCtx.rotate(car.angle);
+                simCtx.fillStyle = car.color;
+                simCtx.fillRect(-car.length / 2, -car.width / 2, car.length, car.width);
+                simCtx.restore();
+            });
+
+            // Yayalar
+            pedestrians.forEach(p => {
+                simCtx.beginPath();
+                simCtx.fillStyle = '#fbbf24';
+                simCtx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+                simCtx.fill();
+            });
+        }
+
+        function updateStatus(connected) {
+            const statusEl = document.getElementById('status');
+            if (connected) {
+                statusEl.textContent = 'Bağlantı Başarılı';
+                statusEl.className = 'status connected';
+            } else {
+                statusEl.textContent = 'Bağlantı Kesildi';
+                statusEl.className = 'status disconnected';
+            }
+        }
+
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('Zaten bağlı', 'info');
+                return;
+            }
+
+            log('WebSocket bağlantısı kuruluyor...', 'info');
+            ws = new WebSocket('ws://localhost:8001/ws/video-stream');
+
+            ws.onopen = () => {
+                log('Video stream WebSocket bağlantısı başarılı!', 'success');
+                updateStatus(true);
+                connectTrafficLight();
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    // Frame'i canvas'a çiz
+                    if (data.frame) {
+                        const canvas = document.getElementById('video');
+                        const ctx = canvas.getContext('2d');
+                        const img = new Image();
+                        img.onload = () => {
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            ctx.drawImage(img, 0, 0);
+
+                            // Bounding box'ları çiz
+                            if (data.tracking && data.tracking.length > 0) {
+                                const colors = {
+                                    'child': '#3b82f6',      // mavi
+                                    'elderly': '#f59e0b',    // turuncu
+                                    'disabled': '#ef4444',   // kırmızı
+                                    'adult': '#10b981'       // yeşil
+                                };
+
+                                data.tracking.forEach(person => {
+                                    const [x1, y1, x2, y2] = person.bbox;
+                                    const color = colors[person.category] || '#10b981';
+
+                                    // Box
+                                    ctx.strokeStyle = color;
+                                    ctx.lineWidth = 3;
+                                    ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+
+                                    // Label background
+                                    const label = `${person.category} ${(person.confidence * 100).toFixed(0)}%`;
+                                    ctx.font = '14px Arial';
+                                    const textWidth = ctx.measureText(label).width;
+                                    ctx.fillStyle = color;
+                                    ctx.fillRect(x1, y1 - 22, textWidth + 10, 22);
+
+                                    // Label text
+                                    ctx.fillStyle = 'white';
+                                    ctx.fillText(label, x1 + 5, y1 - 6);
+
+                                    // Position indicator
+                                    if (person.position !== undefined) {
+                                        const posText = `Pos: ${(person.position * 100).toFixed(0)}%`;
+                                        ctx.fillStyle = color;
+                                        ctx.fillRect(x1, y2, textWidth + 10, 20);
+                                        ctx.fillStyle = 'white';
+                                        ctx.font = '12px Arial';
+                                        ctx.fillText(posText, x1 + 5, y2 + 14);
+                                    }
+                                });
+                            }
+
+                            // Kalibrasyon çizgileri
+                            if (data.calibration_lines && data.calibration_lines[0] && data.calibration_lines[1]) {
+                                const [start, end] = data.calibration_lines;
+                                ctx.strokeStyle = '#10b981';
+                                ctx.lineWidth = 2;
+                                ctx.setLineDash([10, 5]);
+                                ctx.beginPath();
+                                ctx.moveTo(0, start[1]);
+                                ctx.lineTo(canvas.width, start[1]);
+                                ctx.stroke();
+                                ctx.beginPath();
+                                ctx.moveTo(0, end[1]);
+                                ctx.lineTo(canvas.width, end[1]);
+                                ctx.stroke();
+                                ctx.setLineDash([]);
+                            }
+                        };
+                        img.src = 'data:image/jpeg;base64,' + data.frame;
+                    }
+
+                    // Metrikleri güncelle
+                    if (data.tracking) {
+                        document.getElementById('personCount').textContent = data.tracking.length;
+
+                        if (data.metrics && data.metrics.critical_person) {
+                            document.getElementById('criticalPerson').textContent = data.metrics.critical_person.category;
+                        }
+
+                        if (data.metrics && data.metrics.extension_time !== undefined) {
+                            document.getElementById('extensionTime').textContent = data.metrics.extension_time.toFixed(1) + 's';
+                        }
+                    }
+
+                    if (data.tracking && data.tracking.length > 0) {
+                        log(`${data.tracking.length} kişi tespit edildi`, 'info');
+                    }
+                } catch (e) {
+                    log(`Veri parse hatası: ${e.message}`, 'error');
+                }
+            }; ws.onerror = (error) => {
+                log('WebSocket hatası!', 'error');
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onclose = () => {
+                log('WebSocket bağlantısı kapandı', 'info');
+                updateStatus(false);
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+                log('Video stream bağlantısı kapatıldı', 'info');
+            }
+            if (wsTraffic) {
+                wsTraffic.close();
+                wsTraffic = null;
+                log('Traffic light bağlantısı kapatıldı', 'info');
+            }
+        }
+
+        function connectTrafficLight() {
+            if (wsTraffic && wsTraffic.readyState === WebSocket.OPEN) {
+                return;
+            }
+
+            wsTraffic = new WebSocket('ws://localhost:8001/ws/traffic-state');
+
+            wsTraffic.onopen = () => {
+                log('Traffic light WebSocket bağlantısı başarılı!', 'success');
+            };
+
+            wsTraffic.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    updateTrafficLight(data.state);
+                } catch (e) {
+                    console.error('Traffic data parse hatası:', e);
+                }
+            };
+
+            wsTraffic.onerror = () => {
+                log('Traffic light WebSocket hatası!', 'error');
+            };
+
+            wsTraffic.onclose = () => {
+                log('Traffic light WebSocket bağlantısı kapandı', 'info');
+            };
+        }
+
+        function updateTrafficLight(state) {
+            const redLight = document.getElementById('redLight');
+            const yellowLight = document.getElementById('yellowLight');
+            const greenLight = document.getElementById('greenLight');
+            const trafficState = document.getElementById('trafficState');
+
+            // Reset all lights
+            redLight.className = 'light';
+            yellowLight.className = 'light';
+            greenLight.className = 'light';
+
+            if (state && state.pedestrian) {
+                setPedestrianState(state.pedestrian.state, 'backend');
+            }
+
+            // Backend'den araç fazı geldiyse uygula
+            if (state && state.vehicle && state.vehicle.phase) {
+                applyVehiclePhase(state.vehicle.phase, 'backend');
+            }
+
+            if (simTrafficState === 'red') {
+                redLight.className = 'light red-on';
+            } else if (simTrafficState === 'yellow') {
+                yellowLight.className = 'light yellow-on';
+            } else if (simTrafficState === 'green') {
+                greenLight.className = 'light green-on';
+            }
+        }
+
+        async function startCamera() {
+            try {
+                log('Kamera açılıyor...', 'info');
+
+                // Backend kamerayı başlat
+                const response = await fetch(`http://localhost:8001/api/start?camera_id=${activeCamera}`, { method: 'POST' });
+                const data = await response.json();
+                log(`Backend kamera: ${data.status}`, 'success');
+
+                // WebSocket bağlantısı yoksa başlat
+                if (!ws || ws.readyState !== WebSocket.OPEN) {
+                    connect();
+                }
+
+                log('Kamera sistemi aktif!', 'success');
+            } catch (error) {
+                log(`Kamera hatası: ${error.message}`, 'error');
+            }
+        }
+
+        async function startSelectedVideo() {
+            const select = document.getElementById('videoSelect');
+            const videoPath = select.value;
+
+            try {
+                if (videoPath === '') {
+                    // Webcam
+                    await startCamera();
+                } else {
+                    // Video file
+                    log(`Video yükleniyor: ${videoPath}`, 'info');
+                    const response = await fetch(`http://localhost:8001/api/start-video?video_path=${encodeURIComponent(videoPath)}&camera_id=${activeCamera}`, {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+                    log(`Video başlatıldı: ${data.status}`, 'success');
+
+                    // WebSocket bağlantısı yoksa başlat
+                    if (!ws || ws.readyState !== WebSocket.OPEN) {
+                        connect();
+                    }
+                }
+            } catch (error) {
+                log(`Video başlatma hatası: ${error.message}`, 'error');
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                document.getElementById('video').srcObject = null;
+                stream = null;
+                log('Kamera durduruldu', 'info');
+            }
+        }
+
+        // --- Simülasyon: durum güncelleyiciler ---
+        function setPedestrianState(state, source = 'local') {
+            trafficAuthority = source;
+            simTrafficState = state;
+
+            const trafficState = document.getElementById('trafficState');
+            if (trafficState) trafficState.textContent = state.toUpperCase();
+
+            drawIntersection();
+        }
+
+        function applyVehiclePhase(phase, source = 'local') {
+            trafficAuthority = source;
+            vehPhase = phase;
+
+            if (phase === 'NS_GREEN') {
+                vehLights = { N: 'green', S: 'green', E: 'red', W: 'red' };
+                pedLights = { N: 'green', S: 'green', E: 'red', W: 'red' };
+                setPedestrianState('red', source); // overall ped indicator: red when half red
+            } else if (phase === 'NS_YELLOW') {
+                vehLights = { N: 'yellow', S: 'yellow', E: 'red', W: 'red' };
+                pedLights = { N: 'red', S: 'red', E: 'red', W: 'red' };
+                setPedestrianState('red', source);
+            } else if (phase === 'EW_GREEN') {
+                vehLights = { N: 'red', S: 'red', E: 'green', W: 'green' };
+                pedLights = { N: 'red', S: 'red', E: 'green', W: 'green' };
+                setPedestrianState('red', source);
+            } else if (phase === 'EW_YELLOW') {
+                vehLights = { N: 'red', S: 'red', E: 'yellow', W: 'yellow' };
+                pedLights = { N: 'red', S: 'red', E: 'red', W: 'red' };
+                setPedestrianState('red', source);
+            } else if (phase === 'ALL_RED') {
+                vehLights = { N: 'red', S: 'red', E: 'red', W: 'red' };
+                pedLights = { N: 'green', S: 'green', E: 'green', W: 'green' };
+                setPedestrianState('green', source);
+            }
+
+            drawIntersection();
+        }
+
+        function spawnCar() {
+            const dirs = ['N', 'E', 'S', 'W'];
+            const dir = dirs[Math.floor(Math.random() * dirs.length)];
+            const speed = 90 + Math.random() * 40;
+            const length = 28;
+            const width = 14;
+            const palette = ['#38bdf8', '#a855f7', '#f97316', '#10b981', '#f43f5e'];
+            const color = palette[Math.floor(Math.random() * palette.length)];
+
+            let x, y, angle;
+            if (dir === 'N') { x = simCanvas.width * 0.5; y = -30; angle = Math.PI / 2; }
+            if (dir === 'S') { x = simCanvas.width * 0.5; y = simCanvas.height + 30; angle = -Math.PI / 2; }
+            if (dir === 'E') { x = simCanvas.width + 30; y = simCanvas.height * 0.5; angle = Math.PI; }
+            if (dir === 'W') { x = -30; y = simCanvas.height * 0.5; angle = 0; }
+
+            cars.push({ x, y, angle, speed, dir, length, width, color });
+        }
+
+        function spawnPedestrian() {
+            const dirs = ['N', 'E', 'S', 'W'];
+            const dir = dirs[Math.floor(Math.random() * dirs.length)];
+            let x, y, vx = 0, vy = 0;
+            const baseSpeed = 30 + Math.random() * 20;
+
+            if (dir === 'N') { x = simCanvas.width * 0.5 - 40 + Math.random() * 80; y = simCanvas.height * 0.35 - 10; vy = 1; }
+            if (dir === 'S') { x = simCanvas.width * 0.5 - 40 + Math.random() * 80; y = simCanvas.height * 0.65 + 10; vy = -1; }
+            if (dir === 'E') { x = simCanvas.width * 0.65 + 10; y = simCanvas.height * 0.5 - 40 + Math.random() * 80; vx = -1; }
+            if (dir === 'W') { x = simCanvas.width * 0.35 - 10; y = simCanvas.height * 0.5 - 40 + Math.random() * 80; vx = 1; }
+
+            pedestrians.push({ x, y, vx: vx * baseSpeed, vy: vy * baseSpeed });
+        }
+
+        function updateSimulation(dt) {
+            // Yerel trafik döngüsü (backend yoksa)
+            if (trafficAuthority === 'local') {
+                simLocalCycle(dt);
+            }
+
+            // Araç spawn
+            carSpawnTimer += dt;
+            if (carSpawnTimer > 1.8) {
+                spawnCar();
+                carSpawnTimer = 0;
+            }
+
+            // Yaya spawn
+            pedSpawnTimer += dt;
+            if (pedSpawnTimer > 3.5) {
+                spawnPedestrian();
+                pedSpawnTimer = 0;
+            }
+
+            // Araç hareketi
+            cars = cars.filter(car => {
+                if (!canVehicleProceed(car)) return keepWaiting(car);
+                const move = car.speed * dt;
+                car.x += Math.cos(car.angle) * move;
+                car.y += Math.sin(car.angle) * move;
+                return car.x > -80 && car.x < simCanvas.width + 80 && car.y > -80 && car.y < simCanvas.height + 80;
+            });
+
+            // Yaya hareketi
+            pedestrians = pedestrians.filter(p => {
+                if (canPedProceed(p)) {
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                }
+                return p.x > -40 && p.x < simCanvas.width + 40 && p.y > -40 && p.y < simCanvas.height + 40;
+            });
+        }
+
+        function canPedProceed(p) {
+            // Hareket yönüne göre ilgili yaya ışığına bak
+            let key = 'N';
+            if (p.vy > 0) key = 'S';
+            if (p.vy < 0) key = 'N';
+            if (p.vx > 0) key = 'E';
+            if (p.vx < 0) key = 'W';
+            return pedLights[key] === 'green';
+        }
+
+        function canVehicleProceed(car) {
+            const stopLines = {
+                N: simCanvas.height * 0.38,
+                S: simCanvas.height * 0.62,
+                E: simCanvas.width * 0.62,
+                W: simCanvas.width * 0.38,
+            };
+
+            const light = vehLights[car.dir];
+            if (light === 'green') return true;
+            if (light === 'red') return false;
+
+            // Yellow: izin ver ama stop çizgisine çok yakınsa dur
+            if (light === 'yellow') {
+                if (car.dir === 'N' && car.y + 15 < stopLines.N) return true;
+                if (car.dir === 'S' && car.y - 15 > stopLines.S) return true;
+                if (car.dir === 'E' && car.x - 15 > stopLines.E) return true;
+                if (car.dir === 'W' && car.x + 15 < stopLines.W) return true;
+                return false;
+            }
+            return false;
+        }
+
+        function keepWaiting(car) {
+            // Araç duruyor, pozisyon değişmez
+            return car.x > -80 && car.x < simCanvas.width + 80 && car.y > -80 && car.y < simCanvas.height + 80;
+        }
+
+        function simLocalCycle(dt) {
+            // Basit yerel yaya trafik döngüsü: 3s kırmızı -> 1s sarı -> 3s yeşil
+            if (!simLocalCycle.timer) {
+                simLocalCycle.timer = 0;
+                simLocalCycle.phase = 'NS_GREEN';
+                applyVehiclePhase('NS_GREEN', 'local');
+            }
+
+            simLocalCycle.timer += dt;
+            const timer = simLocalCycle.timer;
+
+            if (simLocalCycle.phase === 'NS_GREEN' && timer > 6) {
+                simLocalCycle.phase = 'NS_YELLOW';
+                simLocalCycle.timer = 0;
+                applyVehiclePhase('NS_YELLOW', 'local');
+            } else if (simLocalCycle.phase === 'NS_YELLOW' && timer > 2) {
+                simLocalCycle.phase = 'ALL_RED';
+                simLocalCycle.timer = 0;
+                applyVehiclePhase('ALL_RED', 'local');
+            } else if (simLocalCycle.phase === 'ALL_RED' && timer > 2) {
+                simLocalCycle.phase = 'EW_GREEN';
+                simLocalCycle.timer = 0;
+                applyVehiclePhase('EW_GREEN', 'local');
+            } else if (simLocalCycle.phase === 'EW_GREEN' && timer > 6) {
+                simLocalCycle.phase = 'EW_YELLOW';
+                simLocalCycle.timer = 0;
+                applyVehiclePhase('EW_YELLOW', 'local');
+            } else if (simLocalCycle.phase === 'EW_YELLOW' && timer > 2) {
+                simLocalCycle.phase = 'ALL_RED';
+                simLocalCycle.timer = 0;
+                applyVehiclePhase('ALL_RED', 'local');
+            }
+        }
+
+        function simLoop(ts) {
+            if (lastFrameTime === null) lastFrameTime = ts;
+            const dt = Math.min((ts - lastFrameTime) / 1000, 0.05);
+            lastFrameTime = ts;
+
+            updateSimulation(dt);
+            drawIntersection();
+
+            requestAnimationFrame(simLoop);
+        }
+
+        // Kalibrasyon çizgileri
+        let calibrationLines = {
+            start: [0, 200],
+            end: [0, 350]
+        };
+
+        function updateCalibrationLines() {
+            const startY = parseInt(document.getElementById('startLine').value);
+            const endY = parseInt(document.getElementById('endLine').value);
+
+            calibrationLines.start = [0, startY];
+            calibrationLines.end = [0, endY];
+
+            document.getElementById('startLineValue').textContent = startY + 'px';
+            document.getElementById('endLineValue').textContent = endY + 'px';
+        }
+
+        function resetCalibration() {
+            document.getElementById('startLine').value = 200;
+            document.getElementById('endLine').value = 350;
+            updateCalibrationLines();
+            log('Kalibrasyon sıfırlandı', 'info');
+        }
+
+        async function saveCalibration() {
+            try {
+                const response = await fetch('http://localhost:8001/api/calibrate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        start_line: calibrationLines.start,
+                        end_line: calibrationLines.end
+                    })
+                });
+                const data = await response.json();
+                log('Kalibrasyon kaydedildi!', 'success');
+            } catch (error) {
+                log(`Kalibrasyon hatası: ${error.message}`, 'error');
+            }
+        }
+
+        // Canvas'a tıklama ile kalibrasyon
+        document.getElementById('video').addEventListener('click', function (e) {
+            const canvas = this;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const y = (e.clientY - rect.top) * scaleY;
+
+            // İlk tıklama start line, ikinci tıklama end line
+            if (!this.dataset.firstClick) {
+                document.getElementById('startLine').value = Math.round(y);
+                this.dataset.firstClick = 'true';
+                log(`Başlangıç çizgisi: ${Math.round(y)}px`, 'info');
+            } else {
+                document.getElementById('endLine').value = Math.round(y);
+                delete this.dataset.firstClick;
+                log(`Bitiş çizgisi: ${Math.round(y)}px`, 'info');
+            }
+            updateCalibrationLines();
+        });
+
+        // Sayfa yüklendiğinde backend'i test et
+        window.onload = () => {
+            initSimCanvas();
+            setActiveCamera('cam_n');
+            updateCalibrationLines();
+            setPedestrianState('red', 'local');
+            requestAnimationFrame(simLoop);
+            fetch('http://localhost:8001/docs')
+                .then(() => log('Backend erişilebilir durumda', 'success'))
+                .catch(() => log('Backend bağlantı hatası!', 'error'));
+        };
+    </script>
+</body>
+
+</html>

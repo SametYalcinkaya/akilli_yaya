@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import time
-from typing import List, Optional
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 from ultralytics import YOLO
@@ -18,7 +18,10 @@ class DetectionEngine:
     def _ensure_model(self) -> bool:
         if self._model:
             return True
-        model_path = self.model_path or os.path.join(os.path.dirname(__file__), "models", "yolov8n.pt")
+        model_path = self.model_path or os.path.join(os.path.dirname(__file__), "models", "mvp_best.pt")
+        if not os.path.exists(model_path):
+            # Fallback to base model
+            model_path = os.path.join(os.path.dirname(__file__), "models", "yolov8n.pt")
         if not os.path.exists(model_path):
             return False
         try:
@@ -40,6 +43,7 @@ class DetectionEngine:
         if self._ensure_model():
             results = self._model.predict(frame, verbose=False)
             detections: List[dict] = []
+            frame_h, frame_w = frame.shape[0], frame.shape[1]
             for r in results:
                 boxes = r.boxes
                 if boxes is None:
@@ -50,7 +54,7 @@ class DetectionEngine:
                         continue
                     xyxy = box.xyxy[0].tolist()
                     score = float(box.conf[0]) if box.conf is not None else 0.0
-                    category = "adult"
+                    category = self._infer_category(xyxy, (frame_h, frame_w))
                     detections.append(
                         {
                             "id": len(detections) + 1,
@@ -79,6 +83,24 @@ class DetectionEngine:
             }
         ]
         return self.last_detections
+
+    # ---- Helpers ----
+    def _infer_category(self, bbox: Sequence[float], frame_shape: Tuple[int, int]) -> str:
+        """Very rough heuristic until a classifier is added."""
+        x1, y1, x2, y2 = bbox
+        h = max(1.0, y2 - y1)
+        w = max(1.0, x2 - x1)
+        frame_h, frame_w = frame_shape
+        h_ratio = h / max(frame_h, 1)
+        aspect = w / h
+
+        if h_ratio < 0.22:
+            return "child"
+        if aspect > 0.75 and h_ratio < 0.4:
+            return "disabled"
+        if h_ratio > 0.5:
+            return "elderly"
+        return "adult"
 
     def classify_category(self, bbox: List[int], frame: Optional[object] = None) -> str:
         return "adult"
