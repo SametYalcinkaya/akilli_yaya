@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { ControlPanel } from "./components/LeftPanel/ControlPanel.jsx";
 import { MetricsCards } from "./components/LeftPanel/MetricsCards.jsx";
 import { VideoDisplay } from "./components/LeftPanel/VideoDisplay.jsx";
-import { Simulation } from "./components/RightPanel/Simulation.jsx";
+import { Simulation3D } from "./components/RightPanel/Simulation3D.jsx";
 import { StatusBadge } from "./components/shared/StatusBadge.jsx";
 import { useWebSocket } from "./hooks/useWebSocket.js";
 
@@ -51,10 +51,10 @@ export default function App() {
 
                 <section className="lg:col-span-7 space-y-4">
                     <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-slate-200">Trafik Simülasyonu</p>
-                        <span className="text-xs text-slate-400">Gerçek ışık akışı</span>
+                        <p className="text-sm font-semibold text-slate-200">3D Trafik Simülasyonu</p>
+                        <span className="text-xs text-slate-400">Gerçek zamanlı kavşak</span>
                     </div>
-                    <Simulation />
+                    <Simulation3D />
                 </section>
             </main>
         </div>
