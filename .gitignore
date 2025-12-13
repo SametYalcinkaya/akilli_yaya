@@ -5,10 +5,6 @@ env/
 *.pyc
 *.pyo
 
-# Model weights
-backend/models/
-*.pt
-
 # Node
 node_modules/
 dist/
@@ -19,5 +15,8 @@ dist/
 # Datasets (too large for git)
 datasets/
 
-# Training runs
-runs/
+# Training runs - sadece gereksiz dosyaları engelle
+runs/detect/
+runs/train/*/events.*
+runs/train/*/results.png
+runs/train/*/*.csv

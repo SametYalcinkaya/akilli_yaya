@@ -8,6 +8,20 @@ import numpy as np
 from ultralytics import YOLO
 
 
+# Eğitilmiş 4 sınıflı model (child, elderly, disabled, adult)
+TRAINED_MODEL_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "runs",
+        "train",
+        "ai2_balanced_v1",
+        "weights",
+        "best.pt",
+    )
+)
+
+# Eski model yolu (yedek)
 BEST_MODEL_PATH = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__),
@@ -19,6 +33,14 @@ BEST_MODEL_PATH = os.path.abspath(
         "best.pt",
     )
 )
+
+# Model sınıf isimleri (eğitim sırasına göre)
+CLASS_NAMES = {
+    0: "child",
+    1: "elderly", 
+    2: "disabled",
+    3: "adult"
+}
 
 
 class DetectionEngine:
@@ -36,7 +58,9 @@ class DetectionEngine:
         candidates = []
         if self.model_path:
             candidates.append(self.model_path)
-        # Dokümandaki eğitim çıktısı (best.pt) öncelikli
+        # Eğitilmiş 4 sınıflı model öncelikli
+        candidates.append(TRAINED_MODEL_PATH)
+        # Eski best.pt modeli
         candidates.append(BEST_MODEL_PATH)
         # Backend modelleri
         candidates.append(os.path.join(os.path.dirname(__file__), "models", "mvp_best.pt"))
@@ -46,15 +70,18 @@ class DetectionEngine:
         for path in candidates:
             if path and os.path.exists(path):
                 model_path = path
+                print(f"[DetectionEngine] Model yüklendi: {model_path}")
                 break
 
         if not model_path:
+            print("[DetectionEngine] UYARI: Hiçbir model bulunamadı!")
             return False
         try:
             self._model = YOLO(model_path)
             self.model_path = model_path
             return True
-        except Exception:
+        except Exception as e:
+            print(f"[DetectionEngine] Model yükleme hatası: {e}")
             return False
 
     def load_model(self, model_path: str) -> None:
@@ -67,26 +94,38 @@ class DetectionEngine:
             return self.last_detections
 
         if self._ensure_model():
-            results = self._model.predict(frame, verbose=False)
+            results = self._model.predict(frame, verbose=False, conf=0.25)
             detections: List[dict] = []
             frame_h, frame_w = frame.shape[0], frame.shape[1]
+            
             for r in results:
                 boxes = r.boxes
                 if boxes is None:
                     continue
                 for box in boxes:
                     cls_id = int(box.cls[0]) if box.cls is not None else -1
-                    if cls_id != 0:  # keep only person class
-                        continue
                     xyxy = box.xyxy[0].tolist()
                     score = float(box.conf[0]) if box.conf is not None else 0.0
-                    category = self._infer_category(xyxy, (frame_h, frame_w))
+                    
+                    # Eğitilmiş modelden direkt sınıf al
+                    # Model sınıfları: 0=child, 1=elderly, 2=disabled, 3=adult
+                    if cls_id in CLASS_NAMES:
+                        category = CLASS_NAMES[cls_id]
+                    else:
+                        # Eğer bilinmeyen sınıf ise (eski model kullanılıyorsa)
+                        # cls_id=0 person için heuristic kullan
+                        if cls_id == 0:
+                            category = self._infer_category(xyxy, (frame_h, frame_w))
+                        else:
+                            continue  # Bilinmeyen sınıfları atla
+                    
                     detections.append(
                         {
                             "id": len(detections) + 1,
                             "bbox": [int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3])],
                             "score": score,
                             "category": category,
+                            "class_id": cls_id,
                         }
                     )
             self.last_detections = detections

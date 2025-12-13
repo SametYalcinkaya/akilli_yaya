@@ -94,9 +94,10 @@ export default function App() {
         try {
             const res = await fetch(`${API_URL}/stream/sources`);
             const data = await res.json();
-            setStreamSources(data);
+            setStreamSources(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error("Sources fetch error:", err);
+            setStreamSources([]);
         }
     };
 
@@ -125,12 +126,12 @@ export default function App() {
     const handleKavsakChange = (e) => {
         const kavsakId = e.target.value;
         setSelectedKavsak(kavsakId);
-        
+
         if (!kavsakId) {
             setIframeUrl("");
             return;
         }
-        
+
         const kavsak = BURSA_KAVSAK_KAMERALARI.find(k => k.id === Number(kavsakId));
         if (kavsak) {
             // Direkt iframe URL'si olarak ayarla
@@ -174,13 +175,12 @@ export default function App() {
                             <p className="text-xs text-slate-400">Gerçek Zamanlı Trafik & Yaya Güvenliği</p>
                         </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-4">
-                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
-                            wsStatus === "connected" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                            wsStatus === "connecting" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
-                            "bg-red-500/10 text-red-400 border-red-500/20"
-                        }`}>
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${wsStatus === "connected" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                                wsStatus === "connecting" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                                    "bg-red-500/10 text-red-400 border-red-500/20"
+                            }`}>
                             {wsStatus === "connected" ? <Wifi size={14} /> : <WifiOff size={14} />}
                             {wsStatus === "connected" ? "Sistem Çevrimiçi" : "Bağlantı Yok"}
                         </div>
@@ -193,7 +193,7 @@ export default function App() {
                     {/* Left Sidebar - Controls */}
                     <div className="col-span-12 lg:col-span-3 space-y-6">
                         <ControlPanel />
-                        
+
                         {/* Kavşak Seçimi */}
                         <div className="glass-panel p-4 rounded-xl space-y-3">
                             <div className="flex items-center gap-2 text-slate-300 mb-2">
@@ -212,7 +212,7 @@ export default function App() {
                                     </option>
                                 ))}
                             </select>
-                            
+
                             <div className="relative">
                                 <input
                                     type="text"
@@ -221,7 +221,7 @@ export default function App() {
                                     onChange={(e) => setStreamUrl(e.target.value)}
                                     className="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5 pr-10"
                                 />
-                                <button 
+                                <button
                                     onClick={() => addHLSStream()}
                                     className="absolute right-1 top-1 bottom-1 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-xs font-medium transition-colors"
                                 >
@@ -242,14 +242,13 @@ export default function App() {
                                 </button>
                             </div>
                             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-                                {streamSources.map((source) => (
+                                {(streamSources || []).map((source) => (
                                     <div
                                         key={source.id}
-                                        className={`p-3 rounded-lg flex items-center justify-between transition-all ${
-                                            source.connected
+                                        className={`p-3 rounded-lg flex items-center justify-between transition-all ${source.connected
                                                 ? "bg-emerald-500/10 border border-emerald-500/20"
                                                 : "bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800"
-                                        }`}
+                                            }`}
                                     >
                                         <div className="flex items-center gap-3 overflow-hidden">
                                             <div className={`w-2 h-2 rounded-full flex-shrink-0 ${source.connected ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-slate-600"}`} />
@@ -280,7 +279,7 @@ export default function App() {
 
                     {/* Center - Video Display */}
                     <div className="col-span-12 lg:col-span-6 flex flex-col gap-6">
-                        <VideoDisplay 
+                        <VideoDisplay
                             detections={pedestrians}
                             status={iframeUrl ? "Aktif" : (activeSource ? "Aktif" : "Bekleniyor")}
                             frame={frame}
@@ -289,32 +288,30 @@ export default function App() {
                             iframeUrl={iframeUrl}
                             selectedKavsakName={selectedKavsak ? BURSA_KAVSAK_KAMERALARI.find(k => k.id === Number(selectedKavsak))?.name : ""}
                         />
-                        
+
                         <MetricsCards metrics={metrics} />
                     </div>
 
                     {/* Right Sidebar - Details */}
                     <div className="col-span-12 lg:col-span-3 space-y-6">
                         {/* Risk Status */}
-                        <div className={`glass-panel p-5 rounded-xl border-l-4 ${
-                            riskLevel === "critical" ? "border-l-red-500 bg-red-500/5" :
-                            riskLevel === "high" ? "border-l-orange-500 bg-orange-500/5" :
-                            riskLevel === "medium" ? "border-l-yellow-500 bg-yellow-500/5" :
-                            "border-l-emerald-500 bg-emerald-500/5"
-                        }`}>
+                        <div className={`glass-panel p-5 rounded-xl border-l-4 ${riskLevel === "critical" ? "border-l-red-500 bg-red-500/5" :
+                                riskLevel === "high" ? "border-l-orange-500 bg-orange-500/5" :
+                                    riskLevel === "medium" ? "border-l-yellow-500 bg-yellow-500/5" :
+                                        "border-l-emerald-500 bg-emerald-500/5"
+                            }`}>
                             <div className="flex items-center justify-between mb-2">
                                 <h3 className="font-semibold text-slate-300">Risk Durumu</h3>
                                 {riskLevel === "critical" && <AlertTriangle className="text-red-500 animate-pulse" size={20} />}
                             </div>
-                            <p className={`text-2xl font-bold tracking-tight ${
-                                riskLevel === "critical" ? "text-red-400" :
-                                riskLevel === "high" ? "text-orange-400" :
-                                riskLevel === "medium" ? "text-yellow-400" :
-                                "text-emerald-400"
-                            }`}>
+                            <p className={`text-2xl font-bold tracking-tight ${riskLevel === "critical" ? "text-red-400" :
+                                    riskLevel === "high" ? "text-orange-400" :
+                                        riskLevel === "medium" ? "text-yellow-400" :
+                                            "text-emerald-400"
+                                }`}>
                                 {riskLevel === "critical" ? "KRİTİK SEVİYE" :
-                                 riskLevel === "high" ? "YÜKSEK RİSK" :
-                                 riskLevel === "medium" ? "ORTA RİSK" : "GÜVENLİ"}
+                                    riskLevel === "high" ? "YÜKSEK RİSK" :
+                                        riskLevel === "medium" ? "ORTA RİSK" : "GÜVENLİ"}
                             </p>
                             {metrics?.traffic?.extensionTime > 0 && (
                                 <div className="mt-3 flex items-center gap-2 text-sm text-amber-400 bg-amber-500/10 px-3 py-2 rounded-lg border border-amber-500/20">
@@ -330,7 +327,7 @@ export default function App() {
                                 <Users size={18} className="text-blue-400" />
                                 <h3 className="font-semibold text-sm uppercase tracking-wider">Yaya Listesi ({pedestrians.length})</h3>
                             </div>
-                            
+
                             <div className="space-y-2 overflow-y-auto flex-1 pr-1 custom-scrollbar max-h-[500px]">
                                 {pedestrians.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-40 text-slate-500">
@@ -345,11 +342,10 @@ export default function App() {
                                             <div
                                                 key={p.id}
                                                 onClick={() => setSelectedPedestrianId(isSelected ? null : p.id)}
-                                                className={`p-3 rounded-lg cursor-pointer transition-all border ${
-                                                    isSelected 
-                                                        ? "bg-slate-700 border-emerald-500/50 shadow-lg shadow-emerald-900/20" 
+                                                className={`p-3 rounded-lg cursor-pointer transition-all border ${isSelected
+                                                        ? "bg-slate-700 border-emerald-500/50 shadow-lg shadow-emerald-900/20"
                                                         : "bg-slate-800/40 border-slate-700/50 hover:bg-slate-800 hover:border-slate-600"
-                                                }`}
+                                                    }`}
                                             >
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-2">
@@ -362,9 +358,9 @@ export default function App() {
                                                         {p.speed?.kmh?.toFixed(1)} km/h
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div className="relative h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                                                    <div 
+                                                    <div
                                                         className={`absolute top-0 left-0 h-full rounded-full transition-all duration-300 ${cat.bgColor}`}
                                                         style={{ width: `${p.position?.percent || 0}%` }}
                                                     />

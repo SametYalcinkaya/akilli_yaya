@@ -8,11 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from camera_handler import CameraHandler
-from decision_algorithm import DecisionAlgorithm
-from detection_engine import DetectionEngine
-from traffic_controller import TrafficController
-from tracking_system import TrackingSystem
+from .camera_handler import CameraHandler
+from .decision_algorithm import DecisionAlgorithm
+from .detection_engine import DetectionEngine
+from .traffic_controller import TrafficController
+from .tracking_system import TrackingSystem
 
 app = FastAPI(title="Akilli Yaya Guvenligi MVP", version="0.1.0")
 
@@ -106,6 +106,21 @@ async def reset() -> Dict[str, str]:
 async def status() -> StatusResponse:
     message = "running" if camera.is_running else "idle"
     return StatusResponse(running=camera.is_running, message=message)
+
+
+@app.get("/api/stream/sources")
+async def get_stream_sources() -> List[Dict[str, Any]]:
+    """Mevcut stream kaynaklarını döndür"""
+    sources = []
+    if camera.is_running:
+        sources.append({
+            "id": "main",
+            "name": "Ana Kamera",
+            "type": "camera" if camera.video_path is None else "video",
+            "connected": True,
+            "fps": 30
+        })
+    return sources
 
 
 @app.websocket("/ws/video-stream")

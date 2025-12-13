@@ -1,20 +1,37 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Maximize2, Target, Settings, AlertCircle, Video, Eye, EyeOff, MousePointer2, MapPin } from 'lucide-react';
+import { Maximize2, Target, Settings, AlertCircle, Video, Eye, EyeOff, MousePointer2, MapPin, Check } from 'lucide-react';
 
-export function VideoDisplay({ 
-    detections = [], 
-    status = "Bekleniyor", 
-    frame = null, 
+// Kategori renkleri
+const CATEGORY_COLORS = {
+    child: '#ef4444',    // kırmızı
+    elderly: '#a855f7',  // mor
+    disabled: '#f59e0b', // turuncu
+    adult: '#3b82f6'     // mavi
+};
+
+const CATEGORY_NAMES = {
+    child: 'Çocuk',
+    elderly: 'Yaşlı',
+    disabled: 'Engelli',
+    adult: 'Yetişkin'
+};
+
+export function VideoDisplay({
+    detections = [],
+    status = "Bekleniyor",
+    frame = null,
     frameShape = [480, 640],
     calibrationLines = [],
     roadLengthMeters = 10,
     iframeUrl = "",
-    selectedKavsakName = ""
+    selectedKavsakName = "",
+    onCalibrate = null
 }) {
     const [isCalibrating, setIsCalibrating] = useState(false);
     const [localCalib, setLocalCalib] = useState(calibrationLines);
     const [showOverlay, setShowOverlay] = useState(true);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const [roadLength, setRoadLength] = useState(roadLengthMeters);
     const imageRef = useRef(null);
 
     // Kalibrasyon noktası ekleme
@@ -28,12 +45,38 @@ export function VideoDisplay({
         const newPoints = [...localCalib, [x, y]];
         setLocalCalib(newPoints);
 
-        // 2 nokta seçildiyse kalibrasyonu tamamla (Burada API çağrısı yapılabilir)
+        // 2 nokta seçildiyse kalibrasyon hazır
         if (newPoints.length >= 2) {
             console.log("Kalibrasyon noktaları:", newPoints);
-            // Parent component'e bildirilebilir
         }
     }, [isCalibrating, localCalib, frameShape]);
+
+    // Kalibrasyonu backend'e gönder
+    const submitCalibration = useCallback(async () => {
+        if (localCalib.length < 2) return;
+
+        try {
+            const response = await fetch('http://localhost:8001/api/calibrate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    start_line: localCalib[0],
+                    end_line: localCalib[1],
+                    road_length_m: roadLength
+                })
+            });
+
+            if (response.ok) {
+                console.log("✅ Kalibrasyon başarılı");
+                if (onCalibrate) onCalibrate(localCalib, roadLength);
+                setIsCalibrating(false);
+            } else {
+                console.error("❌ Kalibrasyon hatası");
+            }
+        } catch (err) {
+            console.error("Kalibrasyon API hatası:", err);
+        }
+    }, [localCalib, roadLength, onCalibrate]);
 
     const handleMouseMove = (e) => {
         if (!imageRef.current) return;
@@ -61,16 +104,16 @@ export function VideoDisplay({
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
-                    <button 
+                    <button
                         onClick={() => setShowOverlay(!showOverlay)}
                         className={`p-2 rounded-lg transition-colors ${showOverlay ? "text-blue-400 hover:bg-blue-500/10" : "text-slate-500 hover:bg-slate-700"}`}
                         title="Çizimleri Göster/Gizle"
                     >
                         {showOverlay ? <Eye size={18} /> : <EyeOff size={18} />}
                     </button>
-                    <button 
+                    <button
                         onClick={() => {
                             setIsCalibrating(!isCalibrating);
                             if (!isCalibrating) setLocalCalib([]);
@@ -115,53 +158,69 @@ export function VideoDisplay({
                             onMouseMove={handleMouseMove}
                             style={{ cursor: isCalibrating ? 'crosshair' : 'default' }}
                         />
-                        
+
                         {/* Overlay Layer */}
                         {showOverlay && (
                             <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox={`0 0 ${frameShape[1]} ${frameShape[0]}`} preserveAspectRatio="xMidYMid meet">
                                 {/* Detections */}
-                                {detections.map((det) => (
-                                    <g key={det.id}>
-                                        <rect
-                                            x={det.bbox[0]}
-                                            y={det.bbox[1]}
-                                            width={det.bbox[2] - det.bbox[0]}
-                                            height={det.bbox[3] - det.bbox[1]}
-                                            fill="none"
-                                            stroke={det.category === 'child' ? '#ef4444' : '#3b82f6'}
-                                            strokeWidth="2"
-                                            className="drop-shadow-md"
-                                        />
-                                        {/* Label */}
-                                        <rect
-                                            x={det.bbox[0]}
-                                            y={det.bbox[1] - 20}
-                                            width="60"
-                                            height="20"
-                                            fill={det.category === 'child' ? '#ef4444' : '#3b82f6'}
-                                            rx="4"
-                                        />
-                                        <text
-                                            x={det.bbox[0] + 5}
-                                            y={det.bbox[1] - 6}
-                                            fill="white"
-                                            fontSize="12"
-                                            fontWeight="bold"
-                                        >
-                                            #{det.id}
-                                        </text>
-                                    </g>
-                                ))}
+                                {detections.map((det) => {
+                                    const color = CATEGORY_COLORS[det.category] || CATEGORY_COLORS.adult;
+                                    const categoryName = CATEGORY_NAMES[det.category] || 'Yetişkin';
+                                    return (
+                                        <g key={det.id}>
+                                            <rect
+                                                x={det.bbox[0]}
+                                                y={det.bbox[1]}
+                                                width={det.bbox[2] - det.bbox[0]}
+                                                height={det.bbox[3] - det.bbox[1]}
+                                                fill="none"
+                                                stroke={color}
+                                                strokeWidth="3"
+                                                className="drop-shadow-md"
+                                            />
+                                            {/* Label Background */}
+                                            <rect
+                                                x={det.bbox[0]}
+                                                y={det.bbox[1] - 24}
+                                                width="80"
+                                                height="22"
+                                                fill={color}
+                                                rx="4"
+                                            />
+                                            {/* Label Text */}
+                                            <text
+                                                x={det.bbox[0] + 5}
+                                                y={det.bbox[1] - 8}
+                                                fill="white"
+                                                fontSize="12"
+                                                fontWeight="bold"
+                                            >
+                                                {categoryName}
+                                            </text>
+                                            {/* Confidence Score */}
+                                            {det.score && (
+                                                <text
+                                                    x={det.bbox[2] - 35}
+                                                    y={det.bbox[1] - 8}
+                                                    fill="white"
+                                                    fontSize="10"
+                                                >
+                                                    {Math.round(det.score * 100)}%
+                                                </text>
+                                            )}
+                                        </g>
+                                    );
+                                })}
 
                                 {/* Calibration Lines */}
                                 {localCalib.map((point, i) => (
-                                    <circle key={i} cx={point[0]} cy={point[1]} r="4" fill="#f59e0b" stroke="white" strokeWidth="2" />
+                                    <circle key={i} cx={point[0]} cy={point[1]} r="6" fill="#f59e0b" stroke="white" strokeWidth="2" />
                                 ))}
                                 {localCalib.length === 2 && (
-                                    <line 
-                                        x1={localCalib[0][0]} y1={localCalib[0][1]} 
-                                        x2={localCalib[1][0]} y2={localCalib[1][1]} 
-                                        stroke="#f59e0b" strokeWidth="2" strokeDasharray="5,5" 
+                                    <line
+                                        x1={localCalib[0][0]} y1={localCalib[0][1]}
+                                        x2={localCalib[1][0]} y2={localCalib[1][1]}
+                                        stroke="#f59e0b" strokeWidth="3" strokeDasharray="8,4"
                                     />
                                 )}
                             </svg>
@@ -186,12 +245,36 @@ export function VideoDisplay({
 
                 {/* Calibration Instructions Overlay */}
                 {isCalibrating && (
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-amber-500/90 text-white px-4 py-2 rounded-full shadow-lg backdrop-blur-sm flex items-center gap-2 z-10">
-                        <MousePointer2 size={16} />
-                        <span className="text-sm font-medium">
-                            {localCalib.length === 0 ? "Başlangıç noktasını seçin" : 
-                             localCalib.length === 1 ? "Bitiş noktasını seçin" : "Kalibrasyon tamamlandı"}
-                        </span>
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white px-4 py-3 rounded-xl shadow-lg backdrop-blur-sm z-10 border border-amber-500/30">
+                        <div className="flex items-center gap-2 mb-2">
+                            <MousePointer2 size={16} className="text-amber-400" />
+                            <span className="text-sm font-medium">
+                                {localCalib.length === 0 ? "Başlangıç noktasını seçin" :
+                                    localCalib.length === 1 ? "Bitiş noktasını seçin" : "Kalibrasyon hazır!"}
+                            </span>
+                        </div>
+
+                        {localCalib.length === 2 && (
+                            <div className="flex items-center gap-2 mt-2">
+                                <label className="text-xs text-slate-400">Yol uzunluğu (m):</label>
+                                <input
+                                    type="number"
+                                    value={roadLength}
+                                    onChange={(e) => setRoadLength(parseFloat(e.target.value) || 8)}
+                                    className="w-16 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white"
+                                    min="1"
+                                    max="50"
+                                    step="0.5"
+                                />
+                                <button
+                                    onClick={submitCalibration}
+                                    className="flex items-center gap-1 px-3 py-1 bg-emerald-500 hover:bg-emerald-600 rounded text-sm font-medium transition-colors"
+                                >
+                                    <Check size={14} />
+                                    Kaydet
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
