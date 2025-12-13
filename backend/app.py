@@ -6,9 +6,11 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import time
 from typing import Any, Dict, List, Optional
 
+import httpx
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -72,6 +74,41 @@ class DetectorConfig(BaseModel):
     iou_threshold: float = 0.45
 
 
+class BursaKavsakConfig(BaseModel):
+    """Bursa kavşak kamerası için player URL."""
+    player_url: str  # örn: https://player.bursa.bel.tr/?stream=yunusemrekavsagi_720p
+    name: str = "Bursa Kavşak"
+
+
+# ==================== Helper Functions ====================
+async def extract_hls_url_from_bursa_player(player_url: str) -> Optional[str]:
+    """
+    Bursa Belediyesi player sayfasından gerçek HLS stream URL'sini çıkarır.
+    Player sayfası JavaScript ile HLS URL'sini içerir.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(player_url)
+            if response.status_code != 200:
+                return None
+            
+            html_content = response.text
+            
+            # HLS URL'sini regex ile bul
+            # Format: source: 'https://canliyayin.bursa.bel.tr/cdnlive/xxx.stream/playlist.m3u8?t=xxx&e=xxx'
+            pattern = r"source:\s*['\"]([^'\"]+\.m3u8[^'\"]*)['\"]"
+            match = re.search(pattern, html_content)
+            
+            if match:
+                print(f"Extracted HLS URL: {match.group(1)}")
+                return match.group(1)
+            
+            return None
+    except Exception as e:
+        print(f"HLS URL çıkarma hatası: {e}")
+        return None
+
+
 # ==================== Stream Endpoints ====================
 @app.post("/api/stream/add", tags=["Stream"])
 async def add_stream_source(config: StreamConfig) -> Dict[str, Any]:
@@ -83,6 +120,36 @@ async def add_stream_source(config: StreamConfig) -> Dict[str, Any]:
         source_type=config.source_type
     )
     return {"status": "ok", "source": stream_handler.get_source_status(config.source_id)}
+
+
+@app.post("/api/stream/add-bursa-kavsak", tags=["Stream"])
+async def add_bursa_kavsak(config: BursaKavsakConfig) -> Dict[str, Any]:
+    """
+    Bursa kavşak kamerasını player URL'sinden ekle.
+    Player sayfasından HLS URL'sini otomatik çıkarır.
+    """
+    hls_url = await extract_hls_url_from_bursa_player(config.player_url)
+    
+    if not hls_url:
+        raise HTTPException(400, "HLS stream URL'si bulunamadı. Kamera aktif olmayabilir.")
+    
+    # Stream key'i URL'den çıkar (örn: yunusemrekavsagi_720p)
+    stream_key_match = re.search(r'stream=([^&]+)', config.player_url)
+    stream_key = stream_key_match.group(1) if stream_key_match else f"kavsak_{int(time.time())}"
+    
+    source = stream_handler.add_source(
+        source_id=f"bursa_{stream_key}",
+        name=config.name,
+        url=hls_url,
+        source_type="hls"
+    )
+    
+    return {
+        "status": "ok",
+        "source_id": f"bursa_{stream_key}",
+        "name": config.name,
+        "hls_url": hls_url
+    }
 
 
 @app.post("/api/stream/add-bursa-preset", tags=["Stream"])
@@ -330,4 +397,4 @@ async def shutdown_event():
 # ==================== Main ====================
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=8001, reload=True)

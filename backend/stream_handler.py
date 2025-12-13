@@ -181,9 +181,14 @@ class StreamHandler:
         if source.source_type == "webcam":
             cap = cv2.VideoCapture(int(source.url))
         else:
+            # Bursa streamleri için Referer header gerekebilir
+            if "bursa.bel.tr" in source.url:
+                os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "headers;Referer: https://player.bursa.bel.tr/"
+            
             cap = cv2.VideoCapture(source.url)
         
         if not cap.isOpened():
+            print(f"Failed to open URL: {source.url}")
             source.is_connected = False
             source.error_message = "Bağlantı kurulamadı"
             return
